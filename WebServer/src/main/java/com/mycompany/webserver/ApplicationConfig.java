@@ -22,6 +22,7 @@ public class ApplicationConfig extends javax.ws.rs.core.Application {
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(com.mycompany.webserver.GenericResource.class);
+        resources.add(com.mycompany.webserver.GenericResource_1.class);
     }
     
 }
