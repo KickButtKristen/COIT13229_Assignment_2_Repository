@@ -24,8 +24,8 @@ public class Drone extends Thread {
     static int movements = 1; // How many movements have been done since direction change
     
     // Drone cooordinates
-    static int x_pos = 0;
-    static int y_pos = 0;
+    static int xpos = 0;
+    static int ypos = 0;
     
     public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
@@ -73,7 +73,7 @@ public class Drone extends Thread {
         name = scanner.nextLine();
         
         // Adds drone details to a new DroneDetails object named drone
-        drone = new DroneDetails(id, name, x_pos, y_pos, true);
+        drone = new DroneDetails(id, name, xpos, ypos);
         
         // Make first connection here
         try {
@@ -114,14 +114,14 @@ public class Drone extends Thread {
                 // If the server asks for the drone to move, receive movement locations, send confirmations between
                 message = "Move confirmed";
                 out.writeObject(message);
-                int newX_pos = (Integer)in.readObject();
+                int newXpos = (Integer)in.readObject();
                 out.writeObject(message);
-                int newY_pos = (Integer)in.readObject();
+                int newYpos = (Integer)in.readObject();
                 out.writeObject(message);
                 
                 // Sets new drone coordinates
-                x_pos = newX_pos;
-                y_pos = newY_pos;
+                xpos = newXpos;
+                ypos = newYpos;
             // If the server confirms the input, just confirms it in commandline
             } else if (serverMessage.equals("confirmed")) {
                 System.out.println("Server: Confirmed Everything\n");
@@ -161,20 +161,20 @@ public class Drone extends Thread {
             // Moves drone randomly in direction between 0 and 3 coordinates
             switch (direction) {
                 case 0:
-                    x_pos += rand.nextInt(4);
-                    y_pos += rand.nextInt(4);
+                    xpos += rand.nextInt(4);
+                    ypos += rand.nextInt(4);
                     break;
                 case 1:
-                    x_pos += rand.nextInt(4);
-                    y_pos -= rand.nextInt(4);
+                    xpos += rand.nextInt(4);
+                    ypos -= rand.nextInt(4);
                     break;
                 case 2: 
-                    x_pos -= rand.nextInt(4);
-                    y_pos += rand.nextInt(4);
+                    xpos -= rand.nextInt(4);
+                    ypos += rand.nextInt(4);
                     break;
                 case 3:
-                    x_pos -= rand.nextInt(4);
-                    y_pos -= rand.nextInt(4);
+                    xpos -= rand.nextInt(4);
+                    ypos -= rand.nextInt(4);
                     break;
             }
             
@@ -182,15 +182,22 @@ public class Drone extends Thread {
             movements++;
             
             // Sets drone object's positions to new ones
-            drone.setX_pos(x_pos);
-            drone.setY_pos(y_pos);
+            drone.setXpos(xpos);
+            drone.setYpos(ypos);
             
             // Makes random number up to 100, if the number is 1 reports that there's a fire at the position
             int fireRand = rand.nextInt(100);
             if (fireRand == 1) {
-                int fireSeverity = rand.nextInt(9) + 1;
-                System.out.println("Fire with Severity " + fireSeverity + " spotted at " + x_pos + ", " + y_pos);
-                FireDetails fire = new FireDetails(0, x_pos, y_pos, id, fireSeverity);
+                int intensity = rand.nextInt(9) + 1;
+                System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
+
+                // Randomly generate if the fire is active
+                boolean isActive = rand.nextBoolean();
+
+                // Randomly generate the burning area radius
+                double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
+
+                FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
                 fires.add(fire);
             }
         }
@@ -201,12 +208,12 @@ public class Drone extends Thread {
         return drone;
     }
     
-    public void moveDrone(int newX_pos, int newY_pos) {
+    public void moveDrone(int newXpos, int newYpos) {
         // This function is called if the drone is moved
         // Resets movement so a new direction will be chosen and updates coordinates based on move
         movements = 1;
-        x_pos = newX_pos;
-        y_pos = newY_pos;
+        xpos = newXpos;
+        ypos = newYpos;
     }
     
     @Override
@@ -280,12 +287,12 @@ public class Drone extends Thread {
                 // If the server asks for the drone to move, receive movement locations, send confirmations between
                 message = "Move confirmed";
                 out.writeObject(message);
-                int newX_pos = (Integer)in.readObject();
+                int newXpos = (Integer)in.readObject();
                 out.writeObject(message);
-                int newY_pos = (Integer)in.readObject();
+                int newYpos = (Integer)in.readObject();
                 out.writeObject(message);
                 // Calls function to move drone to new location
-                moveDrone(newX_pos, newY_pos);
+                moveDrone(newXpos, newYpos);
             } else if (serverMessage.equals("confirmed")) {
                 // If the server confirms the input, just confirms it in commandline
                 System.out.println("Server: Confirmed Everything\n");

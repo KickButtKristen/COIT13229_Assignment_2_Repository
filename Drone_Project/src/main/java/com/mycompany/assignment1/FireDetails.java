@@ -8,93 +8,92 @@ package com.mycompany.assignment1;
 
 import java.io.Serializable;
 
-/**
- *
- * @author diamo
- */
-public class FireDetails  implements Serializable {
+public class FireDetails implements Serializable {
     
-    // Set serialVersion so classes are the same
     private static final long serialVersionUID = 6529685098267757690L;
     
-    // Values in this object
     private int id;
-    private int x_pos;
-    private int y_pos;
-    private int droneId;
-    private int severity;
+    private int xpos;
+    private int ypos;
+    private boolean isActive;
+    private int intensity;
+    private double burningAreaRadius;
     
-    // Constructor
-    
-    public FireDetails (int id, int x_pos, int y_pos, int droneId, int severity) {
+    public FireDetails(int id, boolean isActive, int intensity, double burningAreaRadius, int xpos, int ypos) {
         this.id = id;
-        this.x_pos = x_pos;
-        this.y_pos = y_pos;
-        this.droneId = droneId;
-        this.severity = severity;
+        this.xpos = xpos;
+        this.ypos = ypos;
+        this.isActive = isActive;
+        this.intensity = intensity;
+        this.burningAreaRadius = burningAreaRadius;
     }
     
-    // Accessors / Getters
-    
+    // Getters
     public int getId() {
         return id;
     }
     
-    public int getX_pos() {
-        return x_pos;
+    public int getXpos() {
+        return xpos;
     }
     
-    public int getY_pos() {
-        return y_pos;
+    public int getYpos() {
+        return ypos;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public int getIntensity() {
+        return intensity;
+    }
+
+    public double getBurningAreaRadius() {
+        return burningAreaRadius;
     }
     
-    public int getDroneId() {
-        return droneId;
-    }
-    
-    public int getSeverity() {
-        return severity;
-    }
-    
-    // Mutators / Setters
-    
+    // Setters
     public void setId(int id) {
         this.id = id;
     }
     
-    public void setX_pos(int x_pos) {
-        this.x_pos = x_pos;
+    public void setXpos(int xpos) {
+        this.xpos = xpos;
     }
     
-    public void setY_pos(int y_pos) {
-        this.y_pos = y_pos;
+    public void setYpos(int ypos) {
+        this.ypos = ypos;
     }
-    
-    public void setDroneId(int droneId) {
-        this.droneId = droneId;
+
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
     }
-    
-    public void setSeverity(int severity) {
-        this.severity = severity;
+
+    public void setIntensity(int intensity) {
+        this.intensity = intensity;
+    }
+
+    public void setBurningAreaRadius(double burningAreaRadius) {
+        this.burningAreaRadius = burningAreaRadius;
     }
     
     public String toCSV() {
-        return
-                id + "," +
-                x_pos + "," +
-                y_pos + "," +
-                droneId + "," +
-                severity;
+        return id + "," +
+               xpos + "," +
+               ypos + "," +
+               isActive + "," +
+               intensity + "," +
+               burningAreaRadius;
     }
     
-    // toString() Method
     @Override
     public String toString() {
-        return 
-               "Fire ID: " + id + "\n" +
-               "X Position: " + x_pos + "\n" +
-               "Y Position: " + y_pos + "\n" +
-               "Drone Reporting: " + droneId + "\n" +
-               "Severity: " + severity + "\n";
+        return "Fire ID: " + id + "\n" +
+               "X Position: " + xpos + "\n" +
+               "Y Position: " + ypos + "\n" +
+               "Active: " + isActive + "\n" +
+               "Intensity: " + intensity + "\n" +
+               "Burning Area Radius: " + burningAreaRadius + "\n";
     }
 }
