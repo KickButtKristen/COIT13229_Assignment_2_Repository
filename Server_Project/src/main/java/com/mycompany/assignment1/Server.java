@@ -10,8 +10,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
-
+import com.mycompany.assignment1.Connector;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 public class Server extends JFrame implements ActionListener, Runnable {
     
@@ -34,6 +41,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     private JButton shutDownButton = new JButton("Shut Down");
     private JScrollPane scrollPane; // Scroll pane for the text area
     private MapPanel mapPanel;
+    private Timer timer;
     
     // Hash Maps to store positions of drones that need to be moved
     static HashMap<Integer, Integer> newXPositions = new HashMap<>();
@@ -47,7 +55,19 @@ public class Server extends JFrame implements ActionListener, Runnable {
         public MapPanel(ArrayList<DroneDetails> drones, ArrayList<FireDetails> fires) {
             this.drones = drones;
             this.fires = fires;
+            
+            timer = new Timer(10000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Repaint the panel
+                    repaint();
+                }
+            });
+            timer.start();
+            
         }
+        
+        
 
         @Override
         protected void paintComponent(Graphics g) {
@@ -55,37 +75,46 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
             // Set background color of map panel
             setBackground(Color.WHITE);
-            
+
+            // Fetch drones and fires from the database
+            ArrayList<DroneDetails> drones = getDronesFromDatabase();
+            ArrayList<FireDetails> fires = getFiresFromDatabase();
+
             // Draw drones as blue circles with drone id
             for (DroneDetails p : drones) {
-                if (p.getActive()) {
+                
                     // Converts coordinates for use on 400 by 400 grid
-                    int x = (100 - p.getX_pos()) * 2;
-                    int y = (100 - p.getY_pos()) * 2;
+                    int x = (100 - p.getXpos()) * 2;
+                    int y = (100 - p.getYpos()) * 2;
                     int size = 10;
                     g.setColor(Color.BLUE);
                     g.fillOval(x - size/2, y - size/2, size, size);
                     g.setColor(Color.BLACK);
                     g.drawString("Drone " + p.getId(), x - 30, y - 5);
-                }
+                
             }
-            
+
             // Draw fires as red circles with fire id and severity
             for (FireDetails p : fires) {
                 // Converts coordinates for use on 400 by 400 grid
-                int x = (100 - p.getX_pos()) * 2;
-                int y = (100 - p.getY_pos()) * 2;
-                int severity = p.getSeverity();
+                int x = (100 - p.getXpos()) * 2;
+                int y = (100 - p.getYpos()) * 2;
+                int intensity = p.getIntensity();
                 int size = 10;
                 g.setColor(Color.RED);
                 g.fillOval(x - size/2, y - size/2, size, size);
                 g.setColor(Color.BLACK);
-                g.drawString("Fire " + p.getId() + " (" + severity + ")", x - 30, y - 5);
+                g.drawString("Fire " + p.getId() + " (" + intensity + ")", x - 30, y - 5);
             }
+            
+            
         }
+        
     }
     
     Server() {
+        
+        
         // Sets settings for java swing GUI Frame
         super("Server GUI");
         
@@ -187,9 +216,12 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
+    
+    
     public static void main(String[] args) {
         // Calls function to read data from files
-        readData();
+        loadDroneData();
+        loadFireData();
         
         // Starts thread to update map and GUI because that's how it works apparently
         Server obj = new Server();
@@ -204,10 +236,25 @@ public class Server extends JFrame implements ActionListener, Runnable {
             // Constantly on loop, checks for connections and sends connections to new thread
             while(true) {
                 Socket clientSocket = listenSocket.accept();
-                Connection c = new Connection(clientSocket);
+                Connector c = new Connector(clientSocket);
             }
             
         }   catch(IOException e) {System.out.println("Listen Socket : " + e.getMessage());}
+    }
+    
+    private static Connection connectToDatabase() {
+        Connection connection = null;
+        String url = "jdbc:mysql://localhost:3306/ibdms_server?zeroDateTimeBehavior=CONVERT_TO_NULL";
+        String username = "test";
+        String password = "test";
+
+        try {
+            connection = DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            System.out.println("Error connecting to the database: " + e.getMessage());
+        }
+
+        return connection;
     }
     
     static boolean ifRecall() {
@@ -216,168 +263,181 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
     
     static void addDrone(DroneDetails tempDrone) {
-        // Assumes drone is new until found otherwise
-        boolean newDrone = true;
-        boolean wasActive = false;
-        
-        /* Checks each drone object in the drones ArrayList to see
-        if the ID is already present, if it is just updates that drone's
-        Name, Position and Active Status. If this happens says the drone
-        is not new.
-        */
-        for (DroneDetails p : drones) {
-                if (p.getId() == tempDrone.getId()) {
-                    
-                    if (p.getActive()) {
-                        wasActive = true;
-                    }
-                    
-                    p.setName(tempDrone.getName());
-                    p.setX_pos(tempDrone.getX_pos());
-                    p.setY_pos(tempDrone.getY_pos());
-                    p.setActive(tempDrone.getActive());
+        // Add your code to connect to the database and insert or update drone information
+        String insertDrone = "INSERT INTO drone (id, name, xpos, ypos) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, xpos = ?, ypos = ?";
+        try (Connection conn = connectToDatabase();
+             PreparedStatement pstmt = conn.prepareStatement(insertDrone)) {
+            pstmt.setInt(1, tempDrone.getId());
+            pstmt.setString(2, tempDrone.getName());
+            pstmt.setInt(3, tempDrone.getXpos());
+            pstmt.setInt(4, tempDrone.getYpos());
+            pstmt.setString(5, tempDrone.getName());
+            pstmt.setInt(6, tempDrone.getXpos());
+            pstmt.setInt(7, tempDrone.getYpos());
 
-                    newDrone = false;
-                    
-                    if (p.getActive()) {
-                        
-                        if (wasActive) {
-                            outputLog("Drone " + p.getId() + " moved to coordinates: " + p.getX_pos() + ", " + p.getY_pos() + ".");
-                        } else {
-                            outputLog("Drone Reregistered. ID: " + p.getId() + " Name: " + p.getName());
-                        }
-                    } else {
-                        outputLog("Drone " + p.getId() + " recalled.");
-                    }
-                    break;
-                }
-        }
-        
-        // If the drone is new, creates the drone object and adds it to the arraylist
-        if (newDrone) {
-            DroneDetails drone = new DroneDetails(tempDrone.getId(), tempDrone.getName(), tempDrone.getX_pos(), tempDrone.getY_pos(), tempDrone.getActive());
-            drones.add(drone);
-            outputLog("New Drone Registered. ID: " + drone.getId() + " Name: " + drone.getName());
-        }
-        
-        // System.out.println(drones.size() + " Drone Objects");
-    }
-    
-    static void addFire(FireDetails tempFire) {
-        
-        /*
-        Assigns ID to the new fire object then adds it to the ArrayList
-        If the fire ArrayList is empty it will just give the Fire an ID of 0
-        If it's not it'll find the highest Fire ID and set it to one above that
-        Then makes a fire object and adds it to the arraylist and prints fire details
-        */
-        if (fires.isEmpty()) {
-            FireDetails fire = new FireDetails(0, tempFire.getX_pos(), tempFire.getY_pos(), tempFire.getDroneId(), tempFire.getSeverity());
-            fires.add(fire);
-            outputLog("New Fire Spotted at " + fire.getX_pos() + ", " + fire.getY_pos() + " with severity " + fire.getSeverity() + ".");
-        } else {
-            int max = 0;
-            
-            for (FireDetails p : fires) {
-                if (p.getId() > max) {
-                    max = p.getId();
-                }
-            }
-            
-            int fireId = max + 1;
-            
-            FireDetails fire = new FireDetails(fireId, tempFire.getX_pos(), tempFire.getY_pos(), tempFire.getDroneId(), tempFire.getSeverity());
-            fires.add(fire);
-            outputLog("New Fire Spotted at " + fire.getX_pos() + ", " + fire.getY_pos() + " with severity " + fire.getSeverity() + ".");
-        }
-        
-        
-        
-    }
-    
-    static void readData() {
-        // Reads ArrayList from binary file drones.bin
-        try (
-            FileInputStream fileIn = new FileInputStream("drones.bin");
-            ObjectInputStream objectIn = new ObjectInputStream(fileIn)) {
-            
-            ArrayList<DroneDetails> tempDrones = (ArrayList<DroneDetails>) objectIn.readObject();
-            /* If the file is empty the tempDrones arraylist will be null
-            If this is the case it will not set this temp arraylist to be
-            the main arraylist. */
-            if (tempDrones != null) {
-                drones = tempDrones;
-            }
-            
-        } catch(EOFException | FileNotFoundException e) {
-        } catch(IOException e) {e.printStackTrace();
-	} catch(ClassNotFoundException ex){ex.printStackTrace();
-        }
-        
-        outputLog(drones.size() + " drones loaded.");
-        
-        // Reads file, each variable it checks is seperated by the delimiter, the comma
-        // Gets variables from each line and adds it to a fire object then the ArrayList
-        String line = "";
-        String csvDelimiter = ",";
-        
-        try (BufferedReader br = new BufferedReader(new FileReader("fires.csv"))) {
-        
-            // Read heading line
-            br.readLine();
-            
-            // Read remaining lines
-            while ((line = br.readLine()) != null) {
-               String[] data = line.split(csvDelimiter);
-               int id = Integer.parseInt(data[0]);
-               int x_pos = Integer.parseInt(data[1]);
-               int y_pos = Integer.parseInt(data[2]);
-               int droneId = Integer.parseInt(data[3]);
-               int severity = Integer.parseInt(data[4]);
-
-               FireDetails fire = new FireDetails(id, x_pos, y_pos, droneId, severity);
-               fires.add(fire);
-         }
-        } catch (IOException e) {
-           e.printStackTrace();
-        } catch (NumberFormatException e) { e.printStackTrace();
-        }
-        
-        outputLog(fires.size() + " fires loaded.");
-    }
-    
-    static void saveData() {
-        // Saves drones arraylist to drones.bin
-        try (
-            FileOutputStream fileOut = new FileOutputStream("drones.bin");
-            ObjectOutputStream objectOut = new ObjectOutputStream(fileOut)
-            ) {
-            objectOut.writeObject(drones);
-        } catch (IOException e) {
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        
-        // Saves each object in fires ArrayList to fires.csv
-        // Uses object .toCSV() to format the string with variables having commas between
-        try {
-            FileWriter writer = new FileWriter("fires.csv", false);
-            
-            // Writes heading line with column names
-            writer.write("Fire ID,X Position,Y Position,Reporting Drone ID,Severity\n");
-            
-            for (FireDetails p : fires) {
-                writer.write(p.toCSV() + "\n");
+    }
+    
+    static void addFire(FireDetails tempFire) throws SQLException {
+        // Add your code to connect to the database and insert fire information
+        String insertFire = "INSERT IGNORE INTO fire (id, isActive, intensity, burningAreaRadius, xpos, ypos) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = connectToDatabase();
+             PreparedStatement pstmt = conn.prepareStatement(insertFire, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, tempFire.getId());
+            pstmt.setBoolean(2, tempFire.isActive());
+            pstmt.setInt(3, tempFire.getIntensity());
+            pstmt.setDouble(4, tempFire.getBurningAreaRadius());
+            pstmt.setInt(5, tempFire.getXpos());
+            pstmt.setInt(6, tempFire.getYpos());
+
+            pstmt.executeUpdate();
+
+            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    tempFire.setId(generatedKeys.getInt(1));
+                } else {
+                    throw new SQLException("Creating fire failed, no ID obtained.");
+                }
             }
-            writer.close();
-        } catch(IOException e) {e.printStackTrace();
+        } catch (SQLIntegrityConstraintViolationException e) {
+            outputLog("Fire " + tempFire.getId() + " already exists in the database.");
         }
     }
+    
+    private ArrayList getDronesFromDatabase() {
+        ArrayList drones = new ArrayList();
+
+        // Connect to the database using the existing connectToDatabase() method
+        try (Connection con = connectToDatabase()) {
+            if (con != null) {
+                // Execute the query
+                Statement stmt = con.createStatement();
+                String query = "SELECT * FROM drone";
+                ResultSet rs = stmt.executeQuery(query);
+
+                // Iterate through the result set and add the drone data to the drones list
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    String name = rs.getString("name");
+                    int xpos = rs.getInt("xpos");
+                    int ypos = rs.getInt("ypos");
+
+                    DroneDetails drone = new DroneDetails(id, name, xpos, ypos);
+                    drones.add(drone);
+                }
+
+                // Close the resources
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching drone data: " + e.getMessage());
+        }
+
+        return drones;
+    }
+
+    private ArrayList<FireDetails> getFiresFromDatabase() {
+        ArrayList<FireDetails> fires = new ArrayList<>();
+
+        // Connect to the database using the existing connectToDatabase() method
+        try (Connection con = connectToDatabase()) {
+            if (con != null) {
+                // Execute the query
+                Statement stmt = con.createStatement();
+                String query = "SELECT * FROM fire";
+                ResultSet rs = stmt.executeQuery(query);
+
+                // Iterate through the result set and add the fire data to the fires list
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    boolean isActive = rs.getBoolean("isActive");
+                    int intensity = rs.getInt("intensity");
+                    double burningAreaRadius = rs.getDouble("burningAreaRadius");
+                    int xpos = rs.getInt("xpos");
+                    int ypos = rs.getInt("ypos");
+
+                    FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
+                    fires.add(fire);
+                }
+
+                // Close the resources
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching fire data: " + e.getMessage());
+        }
+
+        return fires;
+    }
+
+
+
+
+
+
+    
+    static void loadDroneData() {
+        String query = "SELECT * FROM drone";
+
+        try (Connection connection = connectToDatabase();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(query)) {
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                int xpos = resultSet.getInt("xpos");
+                int ypos = resultSet.getInt("ypos");
+
+                DroneDetails drone = new DroneDetails(id, name, xpos, ypos);
+                drones.add(drone);
+            }
+
+            outputLog(drones.size() + " drones loaded.");
+
+        } catch (SQLException e) {
+            System.out.println("Error loading drone data: " + e.getMessage());
+        }
+    }
+    
+    static void loadFireData() {
+        String query = "SELECT * FROM fire";
+
+        try (Connection connection = connectToDatabase();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(query)) {
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                boolean isActive = resultSet.getBoolean("isActive");
+                int intensity = resultSet.getInt("intensity");
+                double burningAreaRadius = resultSet.getDouble("burningAreaRadius");
+                int xpos = resultSet.getInt("xpos");
+                int ypos = resultSet.getInt("ypos");
+
+                FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
+                fires.add(fire);
+            }
+
+            outputLog(fires.size() + " fires loaded.");
+
+        } catch (SQLException e) {
+            System.out.println("Error loading fire data: " + e.getMessage());
+        }
+    }
+    
+    
     
     public void deleteFire() {
         // Triggered by Delete Fire Button
         // intId is the id that'll be entered
         int intId = -1;
-        
+
         /*
         Opens Option Pane prompting for a Fire ID
         If cancel is pressed, null will be returned causing the loop to break
@@ -395,25 +455,28 @@ public class Server extends JFrame implements ActionListener, Runnable {
                 JOptionPane.showMessageDialog(null, "ID must be numerical.");
             }
         }
-        
-        // Iterator goes through ArrayList until it finds the ID, removes the object from ArrayList
-        // Originally used a for loop, didn't work for some reason
-        // If fire existed sets boolean to true, else will output no fire found message
-        boolean fireExists = false;
-        
-        Iterator<FireDetails> iterator = fires.iterator();
-            while (iterator.hasNext()) {
-                FireDetails p = iterator.next();
-                if (p.getId() == intId) {
-                    iterator.remove();
-                    outputLog("Fire " + intId + " removed.");
-                    fireExists = true;
-                    break;
+
+        try {
+            // Create a new database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/ibdms_server?useSSL=false", "test", "test");
+
+            // Create a statement to delete the fire with the entered ID from the fire table
+            String query = "DELETE FROM fire WHERE id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, intId);
+            int numRowsAffected = stmt.executeUpdate();
+
+            if (numRowsAffected > 0) {
+                outputLog("Fire " + intId + " removed.");
+            } else {
+                outputLog("Fire " + intId + " not found.");
             }
-        }
-        
-        if (!fireExists) {
-            outputLog("Fire " + intId + " not found.");
+
+            // Close the database connection
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occurred while deleting the fire.");
         }
     }
     
@@ -537,7 +600,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
             
             if (!dronesActive) {
                 outputLog("Shut Down Commencing.");
-                saveData();
+                //saveData();
                 System.exit(0);
             }
         }
@@ -561,141 +624,3 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
 }
 
-class Connection extends Thread {
-    // Sets up input and output streams for socket
-    ObjectInputStream in;
-    ObjectOutputStream out;
-    Socket clientSocket;
-    
-    public Connection (Socket aClientSocket) {
-        
-        // Assigns streams to the socket and starts the thread run()
-        try {
-            clientSocket = aClientSocket;
-            in = new ObjectInputStream( clientSocket.getInputStream());
-            out =new ObjectOutputStream( clientSocket.getOutputStream());
-            this.start();
-	} catch(IOException e) {System.out.println("Connection:"+e.getMessage());}
-    }
-    
-    @Override
-    public void run() {
-        try {
-            
-            String message = "";
-            String clientMessage = "";
-            
-            // Movement variables if drone is outside of boundaries
-            // New positions will be set if required
-            boolean outOfBounds = false;
-            boolean movementRequired = false;
-            
-            // Gets drone object from client and adds it to tempDrone object
-            DroneDetails tempDrone = (DroneDetails)in.readObject();
-            
-            // Confirm drone object
-            message = "confirmed";
-            out.writeObject(message);
-            
-            // Receives how many fires there are and confirms receival
-            Integer numFires = (Integer)in.readObject();
-            out.writeObject(message);
-            
-            // Loops for how many fires there are and receives the fire objects
-            // Sends fire object to addFire(); for it to be added, sends confirmation message
-            if (numFires > 0) {
-                for (int i = 0; i < numFires; i++) {
-                    FireDetails tempFire = (FireDetails)in.readObject();
-                    Server.addFire(tempFire);
-                    message = "confirmed";
-                    out.writeObject(message);
-                }
-            }
-            
-            // Checks if drone is in hashmaps for movements
-            // If so sets movementRequired to true, updates drone X and Y positions
-            for (Integer i : Server.newXPositions.keySet()) {
-                if (i == tempDrone.getId()) {
-                    movementRequired = true;
-                    tempDrone.setX_pos(Server.newXPositions.get(i));
-                    Server.newXPositions.remove(i);
-                }
-            }
-            
-            for (Integer i : Server.newYPositions.keySet()) {
-                if (i == tempDrone.getId()) {
-                    movementRequired = true;
-                    tempDrone.setY_pos(Server.newYPositions.get(i));
-                    Server.newYPositions.remove(i);
-                }
-            }
-            
-            // Check x positions, set if out of bounds
-            if (tempDrone.getX_pos() > 100) {
-                outOfBounds = true;
-                tempDrone.setX_pos(80);
-            } else if (tempDrone.getX_pos() < -100) {
-                outOfBounds = true;
-                tempDrone.setX_pos(-80);
-            }
-            
-            // Check y positions, set if out of bounds
-            if (tempDrone.getY_pos() > 100) {
-                outOfBounds = true;
-                tempDrone.setY_pos(80);
-            } else if (tempDrone.getY_pos() < -100) {
-                outOfBounds = true;
-                tempDrone.setY_pos(-80);
-            }
-            
-            // If a Recall is active it will respond to the client saying so
-            // Recall is done first since it matters the most, position doesn't matter if it's being recalled to 0,0 regardless
-            if (Server.ifRecall()) {
-                message = "recall";
-                out.writeObject(message);
-                clientMessage = (String)in.readObject();
-                if (clientMessage.equals("Recall Confirmed")) {
-                    // If drone confirms recall, set the drone active to false
-                    tempDrone.setActive(false);
-                    tempDrone.setX_pos(0);
-                    tempDrone.setY_pos(0);
-                }
-            } else if (movementRequired || outOfBounds) {
-                // Sends move message and receives confirmation between object writes
-                message = "move";
-                out.writeObject(message);
-                clientMessage = (String)in.readObject();
-                out.writeObject(tempDrone.getX_pos());
-                clientMessage = (String)in.readObject();
-                out.writeObject(tempDrone.getY_pos());
-                clientMessage = (String)in.readObject();
-                
-                // Messages outputed based on if the drone was moved or out of bounds
-                // Not an if else because both messages could be required
-                if (movementRequired) {
-                    Server.outputLog("Drone " + tempDrone.getId() + " successfully moved.");
-                }
-                
-                if (outOfBounds) {
-                    Server.outputLog("Drone " + tempDrone.getId() + " outside of boundaries. Moved back.");
-                }
-            } else {
-                // Otherwise just confirms to the client it received the object
-                message = "confirmed";
-                out.writeObject(message);
-            }
-            
-            // Sends tempDrone to the addDrone function to get it in the ArrayList
-            Server.addDrone(tempDrone);
-            
-            System.out.println(tempDrone);
-            
-            System.out.println("There are " + numFires + " new fires.");
-            System.out.println("There are " + Server.fires.size() + " fires.");
-            
-        }catch (EOFException e){System.out.println("EOF:"+e.getMessage());
-        } catch(IOException e) {System.out.println("readline:"+e.getMessage());
-	} catch(ClassNotFoundException ex){ ex.printStackTrace();
-	} finally{ try {clientSocket.close();}catch (IOException e){/*close failed*/}}
-    }
-}

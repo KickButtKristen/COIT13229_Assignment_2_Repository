@@ -12,18 +12,17 @@ public class DroneDetails  implements Serializable {
     // Values in this object
     private int id;
     private String name;
-    private int x_pos;
-    private int y_pos;
+    private int xpos;
+    private int ypos;
     private boolean active;
     
     // Constructor
     
-    public DroneDetails (int id, String name, int x_pos, int y_pos, boolean active) {
+    public DroneDetails (int id, String name, int xpos, int ypos) {
         this.id = id;
         this.name = name;
-        this.x_pos = x_pos;
-        this.y_pos = y_pos;
-        this.active = active;
+        this.xpos = xpos;
+        this.ypos = ypos;
     }
     
     // Accessors / Getters
@@ -36,12 +35,12 @@ public class DroneDetails  implements Serializable {
         return name;
     }
     
-    public int getX_pos() {
-        return x_pos;
+    public int getXpos() {
+        return xpos;
     }
     
-    public int getY_pos() {
-        return y_pos;
+    public int getYpos() {
+        return ypos;
     }
     
     public boolean getActive() {
@@ -58,12 +57,12 @@ public class DroneDetails  implements Serializable {
         this.name = name;
     }
     
-    public void setX_pos(int x_pos) {
-        this.x_pos = x_pos;
+    public void setXpos(int xpos) {
+        this.xpos = xpos;
     }
     
-    public void setY_pos(int y_pos) {
-        this.y_pos = y_pos;
+    public void setYpos(int ypos) {
+        this.ypos = ypos;
     }
     
     public void setActive(boolean active) {
@@ -76,7 +75,7 @@ public class DroneDetails  implements Serializable {
         return 
                "ID: " + id + "\n" +
                "Name: " + name + "\n" +
-               "X Position: " + x_pos + "\n" +
-               "Y Position: " + y_pos + "\n";
+               "X Position: " + xpos + "\n" +
+               "Y Position: " + ypos + "\n";
     }
 }

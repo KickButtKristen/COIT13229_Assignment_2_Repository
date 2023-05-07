@@ -1,2 +1,5 @@
-Fire ID,X Position,Y Position,Reporting Drone ID,Severity
-0,16,-6,1,5
+Fire ID,X Position,Y Position,Reporting Drone ID,Intensity
+5,-15,-21,false,7,6.0
+6,-16,-35,false,7,9.0
+7,19,18,false,4,10.0
+8,10,-16,false,4,10.0
