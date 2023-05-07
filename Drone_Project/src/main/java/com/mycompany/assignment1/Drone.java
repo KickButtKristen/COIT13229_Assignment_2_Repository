@@ -24,8 +24,8 @@ public class Drone extends Thread {
     static int movements = 1; // How many movements have been done since direction change
     
     // Drone cooordinates
-    static int xpos = 0;
-    static int ypos = 0;
+    static int xpos;
+    static int ypos;
     
     public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
