@@ -27,6 +27,7 @@ class Connector extends Thread {
     
     public Connector (Socket aClientSocket) {
         
+        
         // Assigns streams to the socket and starts the thread run()
         try {
             clientSocket = aClientSocket;

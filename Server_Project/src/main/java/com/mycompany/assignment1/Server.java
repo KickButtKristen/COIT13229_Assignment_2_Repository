@@ -100,7 +100,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
                 int x = (100 - p.getXpos()) * 2;
                 int y = (100 - p.getYpos()) * 2;
                 int intensity = p.getIntensity();
-                int size = 10;
+                int size = (int) (p.getBurningAreaRadius() * 3); 
                 g.setColor(Color.RED);
                 g.fillOval(x - size/2, y - size/2, size, size);
                 g.setColor(Color.BLACK);
