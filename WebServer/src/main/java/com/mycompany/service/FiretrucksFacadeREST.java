@@ -3,9 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mycompany.webserver.service;
+package com.mycompany.service;
 
-import com.mycompany.webserver.Fire;
+import com.mycompany.Firetrucks;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -25,27 +25,27 @@ import javax.ws.rs.core.MediaType;
  * @author Kristen
  */
 @Stateless
-@Path("com.mycompany.webserver.fire")
-public class FireFacadeREST extends AbstractFacade<Fire> {
+@Path("com.mycompany.firetrucks")
+public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
 
     @PersistenceContext(unitName = "com.mycompany_WebServer_war_1.0-SNAPSHOTPU")
     private EntityManager em;
 
-    public FireFacadeREST() {
-        super(Fire.class);
+    public FiretrucksFacadeREST() {
+        super(Firetrucks.class);
     }
 
     @POST
     @Override
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void create(Fire entity) {
+    public void create(Firetrucks entity) {
         super.create(entity);
     }
 
     @PUT
     @Path("{id}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void edit(@PathParam("id") Integer id, Fire entity) {
+    public void edit(@PathParam("id") Integer id, Firetrucks entity) {
         super.edit(entity);
     }
 
@@ -58,21 +58,21 @@ public class FireFacadeREST extends AbstractFacade<Fire> {
     @GET
     @Path("{id}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Fire find(@PathParam("id") Integer id) {
+    public Firetrucks find(@PathParam("id") Integer id) {
         return super.find(id);
     }
 
     @GET
     @Override
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public List<Fire> findAll() {
+    public List<Firetrucks> findAll() {
         return super.findAll();
     }
 
     @GET
     @Path("{from}/{to}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public List<Fire> findRange(@PathParam("from") Integer from, @PathParam("to") Integer to) {
+    public List<Firetrucks> findRange(@PathParam("from") Integer from, @PathParam("to") Integer to) {
         return super.findRange(new int[]{from, to});
     }
 

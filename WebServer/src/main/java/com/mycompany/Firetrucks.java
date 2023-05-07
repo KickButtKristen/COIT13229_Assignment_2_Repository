@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mycompany.webserver;
+package com.mycompany;
 
 import java.io.Serializable;
 import javax.persistence.Basic;
@@ -21,14 +21,13 @@ import javax.validation.constraints.Size;
  * @author Kristen
  */
 @Entity
-@Table(name = "drone")
+@Table(name = "firetrucks")
 @NamedQueries({
-    @NamedQuery(name = "Drone.findAll", query = "SELECT d FROM Drone d"),
-    @NamedQuery(name = "Drone.findById", query = "SELECT d FROM Drone d WHERE d.id = :id"),
-    @NamedQuery(name = "Drone.findByName", query = "SELECT d FROM Drone d WHERE d.name = :name"),
-    @NamedQuery(name = "Drone.findByXpos", query = "SELECT d FROM Drone d WHERE d.xpos = :xpos"),
-    @NamedQuery(name = "Drone.findByYpos", query = "SELECT d FROM Drone d WHERE d.ypos = :ypos")})
-public class Drone implements Serializable {
+    @NamedQuery(name = "Firetrucks.findAll", query = "SELECT f FROM Firetrucks f"),
+    @NamedQuery(name = "Firetrucks.findById", query = "SELECT f FROM Firetrucks f WHERE f.id = :id"),
+    @NamedQuery(name = "Firetrucks.findByName", query = "SELECT f FROM Firetrucks f WHERE f.name = :name"),
+    @NamedQuery(name = "Firetrucks.findByDesignatedFireId", query = "SELECT f FROM Firetrucks f WHERE f.designatedFireId = :designatedFireId")})
+public class Firetrucks implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -41,19 +40,17 @@ public class Drone implements Serializable {
     @Size(min = 1, max = 45)
     @Column(name = "name")
     private String name;
-    @Column(name = "xpos")
-    private Integer xpos;
-    @Column(name = "ypos")
-    private Integer ypos;
+    @Column(name = "designatedFireId")
+    private Integer designatedFireId;
 
-    public Drone() {
+    public Firetrucks() {
     }
 
-    public Drone(Integer id) {
+    public Firetrucks(Integer id) {
         this.id = id;
     }
 
-    public Drone(Integer id, String name) {
+    public Firetrucks(Integer id, String name) {
         this.id = id;
         this.name = name;
     }
@@ -74,20 +71,12 @@ public class Drone implements Serializable {
         this.name = name;
     }
 
-    public Integer getXpos() {
-        return xpos;
+    public Integer getDesignatedFireId() {
+        return designatedFireId;
     }
 
-    public void setXpos(Integer xpos) {
-        this.xpos = xpos;
-    }
-
-    public Integer getYpos() {
-        return ypos;
-    }
-
-    public void setYpos(Integer ypos) {
-        this.ypos = ypos;
+    public void setDesignatedFireId(Integer designatedFireId) {
+        this.designatedFireId = designatedFireId;
     }
 
     @Override
@@ -100,10 +89,10 @@ public class Drone implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Drone)) {
+        if (!(object instanceof Firetrucks)) {
             return false;
         }
-        Drone other = (Drone) object;
+        Firetrucks other = (Firetrucks) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -112,7 +101,7 @@ public class Drone implements Serializable {
 
     @Override
     public String toString() {
-        return "com.mycompany.webserver.Drone[ id=" + id + " ]";
+        return "com.mycompany.Firetrucks[ id=" + id + " ]";
     }
     
 }

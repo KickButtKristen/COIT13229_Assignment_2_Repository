@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
         <action>
-            <actionName>CUSTOM-Compile war</actionName>
-            <displayName>Compile war</displayName>
+            <actionName>CUSTOM-Compile War</actionName>
+            <displayName>Compile War</displayName>
             <goals>
                 <goal>compile</goal>
                 <goal>war:war</goal>
