@@ -3,9 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mycompany.service;
+package com.mycompany.webserver.service;
 
-import com.mycompany.Fire;
+import com.mycompany.webserver.Drone;
 import java.util.List;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -25,27 +25,27 @@ import javax.ws.rs.core.MediaType;
  * @author Kristen
  */
 @Stateless
-@Path("com.mycompany.fire")
-public class FireFacadeREST extends AbstractFacade<Fire> {
+@Path("com.mycompany.webserver.drone")
+public class DroneFacadeREST extends AbstractFacade<Drone> {
 
     @PersistenceContext(unitName = "com.mycompany_WebServer_war_1.0-SNAPSHOTPU")
     private EntityManager em;
 
-    public FireFacadeREST() {
-        super(Fire.class);
+    public DroneFacadeREST() {
+        super(Drone.class);
     }
 
     @POST
     @Override
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void create(Fire entity) {
+    public void create(Drone entity) {
         super.create(entity);
     }
 
     @PUT
     @Path("{id}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public void edit(@PathParam("id") Integer id, Fire entity) {
+    public void edit(@PathParam("id") Integer id, Drone entity) {
         super.edit(entity);
     }
 
@@ -58,21 +58,21 @@ public class FireFacadeREST extends AbstractFacade<Fire> {
     @GET
     @Path("{id}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Fire find(@PathParam("id") Integer id) {
+    public Drone find(@PathParam("id") Integer id) {
         return super.find(id);
     }
 
     @GET
     @Override
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public List<Fire> findAll() {
+    public List<Drone> findAll() {
         return super.findAll();
     }
 
     @GET
     @Path("{from}/{to}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public List<Fire> findRange(@PathParam("from") Integer from, @PathParam("to") Integer to) {
+    public List<Drone> findRange(@PathParam("from") Integer from, @PathParam("to") Integer to) {
         return super.findRange(new int[]{from, to});
     }
 

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mycompany;
+package com.mycompany.webserver;
 
 import java.io.Serializable;
 import javax.persistence.Basic;
@@ -14,21 +14,22 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 /**
  *
  * @author Kristen
  */
 @Entity
-@Table(name = "drone")
+@Table(name = "fire")
 @NamedQueries({
-    @NamedQuery(name = "Drone.findAll", query = "SELECT d FROM Drone d"),
-    @NamedQuery(name = "Drone.findById", query = "SELECT d FROM Drone d WHERE d.id = :id"),
-    @NamedQuery(name = "Drone.findByName", query = "SELECT d FROM Drone d WHERE d.name = :name"),
-    @NamedQuery(name = "Drone.findByXpos", query = "SELECT d FROM Drone d WHERE d.xpos = :xpos"),
-    @NamedQuery(name = "Drone.findByYpos", query = "SELECT d FROM Drone d WHERE d.ypos = :ypos")})
-public class Drone implements Serializable {
+    @NamedQuery(name = "Fire.findAll", query = "SELECT f FROM Fire f"),
+    @NamedQuery(name = "Fire.findById", query = "SELECT f FROM Fire f WHERE f.id = :id"),
+    @NamedQuery(name = "Fire.findByIsActive", query = "SELECT f FROM Fire f WHERE f.isActive = :isActive"),
+    @NamedQuery(name = "Fire.findByIntensity", query = "SELECT f FROM Fire f WHERE f.intensity = :intensity"),
+    @NamedQuery(name = "Fire.findByBurningAreaRadius", query = "SELECT f FROM Fire f WHERE f.burningAreaRadius = :burningAreaRadius"),
+    @NamedQuery(name = "Fire.findByXpos", query = "SELECT f FROM Fire f WHERE f.xpos = :xpos"),
+    @NamedQuery(name = "Fire.findByYpos", query = "SELECT f FROM Fire f WHERE f.ypos = :ypos")})
+public class Fire implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -38,24 +39,27 @@ public class Drone implements Serializable {
     private Integer id;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 45)
-    @Column(name = "name")
-    private String name;
+    @Column(name = "isActive")
+    private int isActive;
+    @Column(name = "intensity")
+    private Integer intensity;
+    @Column(name = "burningAreaRadius")
+    private Long burningAreaRadius;
     @Column(name = "xpos")
     private Integer xpos;
     @Column(name = "ypos")
     private Integer ypos;
 
-    public Drone() {
+    public Fire() {
     }
 
-    public Drone(Integer id) {
+    public Fire(Integer id) {
         this.id = id;
     }
 
-    public Drone(Integer id, String name) {
+    public Fire(Integer id, int isActive) {
         this.id = id;
-        this.name = name;
+        this.isActive = isActive;
     }
 
     public Integer getId() {
@@ -66,12 +70,28 @@ public class Drone implements Serializable {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public int getIsActive() {
+        return isActive;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setIsActive(int isActive) {
+        this.isActive = isActive;
+    }
+
+    public Integer getIntensity() {
+        return intensity;
+    }
+
+    public void setIntensity(Integer intensity) {
+        this.intensity = intensity;
+    }
+
+    public Long getBurningAreaRadius() {
+        return burningAreaRadius;
+    }
+
+    public void setBurningAreaRadius(Long burningAreaRadius) {
+        this.burningAreaRadius = burningAreaRadius;
     }
 
     public Integer getXpos() {
@@ -100,10 +120,10 @@ public class Drone implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Drone)) {
+        if (!(object instanceof Fire)) {
             return false;
         }
-        Drone other = (Drone) object;
+        Fire other = (Fire) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -112,7 +132,7 @@ public class Drone implements Serializable {
 
     @Override
     public String toString() {
-        return "com.mycompany.Drone[ id=" + id + " ]";
+        return "com.mycompany.webserver.Fire[ id=" + id + " ]";
     }
     
 }
