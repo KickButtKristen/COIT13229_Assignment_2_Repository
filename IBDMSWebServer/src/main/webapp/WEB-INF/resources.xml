@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <Resource id="IBDMSServerDataSource" type="javax.sql.DataSource">#Tue May 09 20:26:06 AEST 2023
+password=test
+jdbcDriver=com.mysql.cj.jdbc.Driver
+jdbcUrl=jdbc\:mysql\://localhost\:3306/ibdms_server?zeroDateTimeBehavior\=CONVERT_TO_NULL
+userName=test
+</Resource>
+</resources>
