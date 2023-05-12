@@ -22,6 +22,7 @@ public class Drone extends Thread {
     static ArrayList<FireDetails> fires = new ArrayList<>(); // ArrayList for storing fires found since last server update
     static boolean recallStatus = false; // If a recall has been initiated
     static int movements = 1; // How many movements have been done since direction change
+    static boolean isManualMove = false;
     
     // Drone cooordinates
     static int xpos;
@@ -141,24 +142,25 @@ public class Drone extends Thread {
         
         // Facilitates Drone movements
         while (true) {
-            // If drone needs to be recalled, stops movement by breaking loop
-            if (recallStatus) {
-                break;
-            }
-            
-            // Sleeps thread for 2 seconds
-            Thread.sleep(2000);
-            
-            // The drone will move in the same direction for 10 movements before changing direction
-            if (movements == 1) {
-                // Chooses a direction to start moving in
-                direction = rand.nextInt(4);
-            } else if (movements == 10) {
-                // Will Reset movements back to 0
-                movements = 0;
-            }
-            
-            // Moves drone randomly in direction between 0 and 3 coordinates
+        // If drone needs to be recalled, stops movement by breaking loop
+        if (recallStatus) {
+            break;
+        }
+
+        // Sleeps thread for 2 seconds
+        Thread.sleep(2000);
+
+        // The drone will move in the same direction for 10 movements before changing direction
+        if (movements == 1) {
+            // Chooses a direction to start moving in
+            direction = rand.nextInt(4);
+        } else if (movements == 10) {
+            // Will Reset movements back to 0
+            movements = 0;
+        }
+
+        // Moves drone randomly in direction between 0 and 3 coordinates only if a manual move has not been made
+        if (!isManualMove) {
             switch (direction) {
                 case 0:
                     xpos += rand.nextInt(4);
@@ -177,30 +179,33 @@ public class Drone extends Thread {
                     ypos -= rand.nextInt(4);
                     break;
             }
-            
-            // Increases movements counter
-            movements++;
-            
-            // Sets drone object's positions to new ones
-            drone.setXpos(xpos);
-            drone.setYpos(ypos);
-            
-            // Makes random number up to 100, if the number is 1 reports that there's a fire at the position
-            int fireRand = rand.nextInt(100);
-            if (fireRand == 1) {
-                int intensity = rand.nextInt(9) + 1;
-                System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
-
-                // Randomly generate if the fire is active
-                boolean isActive = rand.nextBoolean();
-
-                // Randomly generate the burning area radius
-                double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
-
-                FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
-                fires.add(fire);
-            }
+        } else {
+            isManualMove = false; // reset the flag
         }
+
+        // Increases movements counter
+        movements++;
+
+        // Sets drone object's positions to new ones
+        drone.setXpos(xpos);
+        drone.setYpos(ypos);
+
+        // Makes random number up to 100, if the number is 1 reports that there's a fire at the position
+        int fireRand = rand.nextInt(100);
+        if (fireRand == 1) {
+            int intensity = rand.nextInt(9) + 1;
+            System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
+
+            // Randomly generate if the fire is active
+            boolean isActive = rand.nextBoolean();
+
+            // Randomly generate the burning area radius
+            double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
+
+            FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
+            fires.add(fire);
+        }
+    }
             
     }
     
@@ -214,6 +219,7 @@ public class Drone extends Thread {
         movements = 1;
         xpos = newXpos;
         ypos = newYpos;
+        isManualMove = true;
     }
     
     @Override
