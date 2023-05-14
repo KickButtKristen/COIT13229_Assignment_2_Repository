@@ -301,6 +301,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         return recallStatus;
     }
     
+    //Method to Add a new drone into the database if it is not already existing (compared by  Id of the drone)
     static void addDrone(DroneDetails tempDrone) {
         // Add your code to connect to the database and insert or update drone information
         String insertDrone = "INSERT INTO drone (id, name, xpos, ypos) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, xpos = ?, ypos = ?";
@@ -320,6 +321,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
+    //Method to Add a new fire report into the fire table if it is not already existing (compared by Id of the fire)
     static void addFire(FireDetails tempFire) {
         String insertFire = "INSERT IGNORE INTO fire (id, isActive, intensity, burningAreaRadius, xpos, ypos) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = connectToDatabase();
@@ -351,6 +353,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
+    //Method to add a new fire truck response to the firetrucks table in the database (Compared by firetruck Id)
     static void addFireTruck(FiretruckDetails fireTruck) {
         String insertFireTruck = "INSERT INTO firetrucks (id, name, designatedFireId) VALUES (?, ?, ?)";
         try (Connection conn = connectToDatabase();
@@ -367,7 +370,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
     
     
-
+    //Method to check if the fire report already exists in the database 
     private static boolean fireExists(int id) {
         String query = "SELECT * FROM fire WHERE id = ?";
         try (Connection conn = connectToDatabase();
@@ -381,9 +384,8 @@ public class Server extends JFrame implements ActionListener, Runnable {
         return false;
     }
 
+    //Method to give the fire reports their own unique fire report Id so that there is no overlap when trying to identify that report
     private static int generateUniqueFireId() {
-        // This is a very basic way to generate a unique ID
-        // You may want to implement a more robust method depending on your needs
         int id = 1;
         while (fireExists(id)) {
             id++;
@@ -393,7 +395,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     
     
     
-    
+    //ArrayList to store the DroneDetails that are received from the database. 
     private ArrayList<DroneDetails> getDronesFromDatabase() {
         ArrayList<DroneDetails> drones = new ArrayList<>();
 
@@ -548,7 +550,37 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
-    
+    static void initialDronePosition(ObjectOutputStream out, DroneDetails currentDrone) {
+        String query = "SELECT * FROM drone WHERE id = ?";
+        boolean droneFound = false;
+
+        try (Connection connection = connectToDatabase();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, currentDrone.getId());
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int xpos = resultSet.getInt("xpos");
+                int ypos = resultSet.getInt("ypos");
+
+                out.writeObject(xpos);
+                out.writeObject(ypos);
+
+                droneFound = true;
+            }
+
+            if (!droneFound) {
+                out.writeObject(0);
+                out.writeObject(0);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error getting drone initial position: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Error sending drone initial position: " + e.getMessage());
+        }
+    }
     
     public void deleteFire() {
         // Triggered by Delete Fire Button
@@ -671,6 +703,8 @@ public class Server extends JFrame implements ActionListener, Runnable {
         // the drone id was not found in the database
         return false;
     }
+    
+    
     
     
     public void recallDrones() {
