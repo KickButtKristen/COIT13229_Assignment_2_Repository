@@ -19,9 +19,38 @@
         <script>
             // Fetch drone data from the server
             fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.drone')
-                    .then(response => response.text())
-                    .then(data => console.log(data))
-                    .catch(error => console.error('Error:', error));
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('HTTP error ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const table = document.getElementById('droneTable');
+                        for (let item of data) {
+                            const row = document.createElement('tr');
+                            const idCell = document.createElement('td');
+                            idCell.textContent = item.id;
+                            row.appendChild(idCell);
+
+                            const nameCell = document.createElement('td');
+                            nameCell.textContent = item.name;
+                            row.appendChild(nameCell);
+
+                            const xPosCell = document.createElement('td');
+                            xPosCell.textContent = item.xpos;
+                            row.appendChild(xPosCell);
+
+                            const yPosCell = document.createElement('td');
+                            yPosCell.textContent = item.ypos;
+                            row.appendChild(yPosCell);
+
+                            table.appendChild(row);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Failed to fetch drone data: ' + err.message);
+                    });
         </script>
     </body>
 </html>
