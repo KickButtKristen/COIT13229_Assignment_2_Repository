@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -22,7 +23,7 @@ public class ClientApplication extends JFrame implements ActionListener {
     private JButton sendReportButton;
     private JButton sendTruckButton;
     private MapPanel mapPanel;
-    
+
     private static Connection conn;
 
     public ClientApplication() {
@@ -38,9 +39,8 @@ public class ClientApplication extends JFrame implements ActionListener {
         truckIdTextField = new JTextField(5);
         sendReportButton = new JButton("Send Report");
         sendTruckButton = new JButton("Send Truck");
-        
-        //mapPanel = new MapPanel();
 
+        //mapPanel = new MapPanel();
         // Set up control panel
         controlPanel = new JPanel();
         controlPanel.setLayout(new GridLayout(5, 2));
@@ -74,7 +74,7 @@ public class ClientApplication extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         add(mainPanel);
         setVisible(true);
-        
+
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             String url = "jdbc:mysql://localhost:3306/nema";
@@ -85,9 +85,8 @@ public class ClientApplication extends JFrame implements ActionListener {
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
-        
-    }
 
+    }
 
     public static void main(String[] args) {
         new ClientApplication();
@@ -109,7 +108,7 @@ public class ClientApplication extends JFrame implements ActionListener {
             // TODO: send truck to server
         }
     }
-    
+
     private class MapPanel extends JPanel {
 
         private ArrayList<DroneDetails> drones;
@@ -135,7 +134,7 @@ public class ClientApplication extends JFrame implements ActionListener {
                     int y = (100 - p.getY_pos()) * 2;
                     int size = 10;
                     g.setColor(Color.BLUE);
-                    g.fillOval(x - size/2, y - size/2, size, size);
+                    g.fillOval(x - size / 2, y - size / 2, size, size);
                     g.setColor(Color.BLACK);
                     g.drawString("Drone " + p.getId(), x - 30, y - 5);
                 }
@@ -149,7 +148,7 @@ public class ClientApplication extends JFrame implements ActionListener {
                 int severity = p.getSeverity();
                 int size = 10;
                 g.setColor(Color.RED);
-                g.fillOval(x - size/2, y - size/2, size, size);
+                g.fillOval(x - size / 2, y - size / 2, size, size);
                 g.setColor(Color.BLACK);
                 g.drawString("Fire " + p.getId() + " (" + severity + ")", x - 30, y - 5);
             }
