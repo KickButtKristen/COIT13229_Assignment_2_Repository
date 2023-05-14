@@ -1,64 +1,99 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.mycompany.assignment1.service;
 
 import java.util.List;
 import javax.persistence.EntityManager;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
 
-/**
- *
- * @author Kristen
- */
 public abstract class AbstractFacade<T> {
 
     private Class<T> entityClass;
 
     public AbstractFacade(Class<T> entityClass) {
+        if (entityClass == null) {
+            throw new IllegalArgumentException("Entity class cannot be null.");
+        }
         this.entityClass = entityClass;
     }
 
     protected abstract EntityManager getEntityManager();
 
     public void create(T entity) {
-        getEntityManager().persist(entity);
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        em.persist(entity);
     }
 
     public void edit(T entity) {
-        getEntityManager().merge(entity);
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        em.merge(entity);
     }
 
     public void remove(T entity) {
-        getEntityManager().remove(getEntityManager().merge(entity));
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        em.remove(em.merge(entity));
     }
 
     public T find(Object id) {
-        return getEntityManager().find(entityClass, id);
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        return em.find(entityClass, id);
     }
 
     public List<T> findAll() {
-        javax.persistence.criteria.CriteriaQuery cq = getEntityManager().getCriteriaBuilder().createQuery();
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        if (cb == null) {
+            throw new IllegalStateException("CriteriaBuilder has not been initialized.");
+        }
+        CriteriaQuery cq = cb.createQuery();
         cq.select(cq.from(entityClass));
-        return getEntityManager().createQuery(cq).getResultList();
+        return em.createQuery(cq).getResultList();
     }
 
     public List<T> findRange(int[] range) {
-        javax.persistence.criteria.CriteriaQuery cq = getEntityManager().getCriteriaBuilder().createQuery();
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        if (cb == null) {
+            throw new IllegalStateException("CriteriaBuilder has not been initialized.");
+        }
+        CriteriaQuery cq = cb.createQuery();
         cq.select(cq.from(entityClass));
-        javax.persistence.Query q = getEntityManager().createQuery(cq);
+        javax.persistence.Query q = em.createQuery(cq);
         q.setMaxResults(range[1] - range[0] + 1);
         q.setFirstResult(range[0]);
         return q.getResultList();
     }
 
     public int count() {
-        javax.persistence.criteria.CriteriaQuery cq = getEntityManager().getCriteriaBuilder().createQuery();
+        EntityManager em = getEntityManager();
+        if (em == null) {
+            throw new IllegalStateException("EntityManager has not been initialized.");
+        }
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        if (cb == null) {
+            throw new IllegalStateException("CriteriaBuilder has not been initialized.");
+        }
+        CriteriaQuery cq = cb.createQuery();
         javax.persistence.criteria.Root<T> rt = cq.from(entityClass);
-        cq.select(getEntityManager().getCriteriaBuilder().count(rt));
-        javax.persistence.Query q = getEntityManager().createQuery(cq);
+        cq.select(cb.count(rt));
+        javax.persistence.Query q = em.createQuery(cq);
         return ((Long) q.getSingleResult()).intValue();
     }
-    
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <persistence version="2.1" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
-  <persistence-unit name="com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU" transaction-type="RESOURCE_LOCAL">
+  <persistence-unit name="com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU" transaction-type="JTA">
+      <jta-data-source>java:openejb/Resource/jdbc/ibdms_server</jta-data-source>
     <class>com.mycompany.assignment1.Drone</class>
     <class>com.mycompany.assignment1.Fire</class>
     <class>com.mycompany.assignment1.Firetrucks</class>
