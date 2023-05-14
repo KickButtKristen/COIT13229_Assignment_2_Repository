@@ -9,7 +9,8 @@
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
-                    <th>Other Columns...</th>
+                    <th>X Position</th>
+                    <th>Y Position</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,26 +24,32 @@
                         if (!response.ok) {
                             throw new Error('HTTP error ' + response.status);
                         }
-                        return response.json();
+                        return response.text(); // get the response body as text
+                    })
+                    .then(str => { // parse the text as XML
+                        let parser = new DOMParser();
+                        return parser.parseFromString(str, "text/xml");
                     })
                     .then(data => {
                         const table = document.getElementById('droneTable');
-                        for (let item of data) {
+                        let drones = data.getElementsByTagName('drone');
+                        for (let drone of drones) {
                             const row = document.createElement('tr');
+                            
                             const idCell = document.createElement('td');
-                            idCell.textContent = item.id;
+                            idCell.textContent = drone.getElementsByTagName('id')[0].textContent;
                             row.appendChild(idCell);
 
                             const nameCell = document.createElement('td');
-                            nameCell.textContent = item.name;
+                            nameCell.textContent = drone.getElementsByTagName('name')[0].textContent;
                             row.appendChild(nameCell);
 
                             const xPosCell = document.createElement('td');
-                            xPosCell.textContent = item.xpos;
+                            xPosCell.textContent = drone.getElementsByTagName('xpos')[0].textContent;
                             row.appendChild(xPosCell);
 
                             const yPosCell = document.createElement('td');
-                            yPosCell.textContent = item.ypos;
+                            yPosCell.textContent = drone.getElementsByTagName('ypos')[0].textContent;
                             row.appendChild(yPosCell);
 
                             table.appendChild(row);
