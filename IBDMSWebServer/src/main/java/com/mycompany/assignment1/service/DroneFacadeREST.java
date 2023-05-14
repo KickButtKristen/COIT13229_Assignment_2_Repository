@@ -1,15 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.mycompany.assignment1.service;
 
 import com.mycompany.assignment1.Drone;
 import java.util.List;
-import javax.ejb.Stateless;
+import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -24,12 +20,11 @@ import javax.ws.rs.core.MediaType;
  *
  * @author Kristen
  */
-@Stateless
 @Path("com.mycompany.assignment1.drone")
 public class DroneFacadeREST extends AbstractFacade<Drone> {
 
-    @PersistenceContext(unitName = "com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU")
-    private EntityManager em;
+    private EntityManagerFactory emf = Persistence.createEntityManagerFactory("com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU");
+    private EntityManager em = emf.createEntityManager();
 
     public DroneFacadeREST() {
         super(Drone.class);
@@ -39,20 +34,26 @@ public class DroneFacadeREST extends AbstractFacade<Drone> {
     @Override
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void create(Drone entity) {
+        getEntityManager().getTransaction().begin();
         super.create(entity);
+        getEntityManager().getTransaction().commit();
     }
 
     @PUT
     @Path("{id}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void edit(@PathParam("id") Integer id, Drone entity) {
+        getEntityManager().getTransaction().begin();
         super.edit(entity);
+        getEntityManager().getTransaction().commit();
     }
 
     @DELETE
     @Path("{id}")
     public void remove(@PathParam("id") Integer id) {
+        getEntityManager().getTransaction().begin();
         super.remove(super.find(id));
+        getEntityManager().getTransaction().commit();
     }
 
     @GET
@@ -88,4 +89,9 @@ public class DroneFacadeREST extends AbstractFacade<Drone> {
         return em;
     }
     
+    @PreDestroy
+    public void onDestroy() {
+        em.close();
+        emf.close();
+    }
 }

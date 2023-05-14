@@ -1,43 +1,63 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Drone Data Test</title>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script>
-            $(document).ready(function(){
-                $.ajax({
-                    url: "http://localhost:8080/IBDMSWebServer/api/com.mycompany.assignment1.drone",
-                    type: "GET",
-                    dataType: 'json',
-                    success: function(result){
-                        console.log("Data received: ", result);  // Debugging statement
-
-                        var table = $('<table/>');
-                        var header = $('<tr/>');
-                        header.append($('<th/>', { text: 'Id' }));
-                        header.append($('<th/>', { text: 'Name' }));
-                        header.append($('<th/>', { text: 'X Position' }));
-                        header.append($('<th/>', { text: 'Y Position' }));
-                        table.append(header);
-                        $.each(result, function(i, drone){
-                            var row = $('<tr/>');
-                            row.append($('<td/>', { text: drone.id }));
-                            row.append($('<td/>', { text: drone.name }));
-                            row.append($('<td/>', { text: drone.xpos }));
-                            row.append($('<td/>', { text: drone.ypos }));
-                            table.append(row);
-                        });
-                        $('#data').html(table);
-                    },
-                    error: function(jqXHR, textStatus, errorThrown){
-                        console.log('Error: ' + textStatus + ' - ' + errorThrown);  // Debugging statement
-                    }
-                });
-            });
-        </script>
+        <title>Drone Data</title>
     </head>
     <body>
-        <h1>Drone Data Test </h1>
-        <div id="data"></div>
+        <table id="droneTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>X Position</th>
+                    <th>Y Position</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <script>
+            // Fetch drone data from the server
+            fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.drone')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('HTTP error ' + response.status);
+                        }
+                        return response.text(); // get the response body as text
+                    })
+                    .then(str => { // parse the text as XML
+                        let parser = new DOMParser();
+                        return parser.parseFromString(str, "text/xml");
+                    })
+                    .then(data => {
+                        const table = document.getElementById('droneTable');
+                        let drones = data.getElementsByTagName('drone');
+                        for (let drone of drones) {
+                            const row = document.createElement('tr');
+                            
+                            const idCell = document.createElement('td');
+                            idCell.textContent = drone.getElementsByTagName('id')[0].textContent;
+                            row.appendChild(idCell);
+
+                            const nameCell = document.createElement('td');
+                            nameCell.textContent = drone.getElementsByTagName('name')[0].textContent;
+                            row.appendChild(nameCell);
+
+                            const xPosCell = document.createElement('td');
+                            xPosCell.textContent = drone.getElementsByTagName('xpos')[0].textContent;
+                            row.appendChild(xPosCell);
+
+                            const yPosCell = document.createElement('td');
+                            yPosCell.textContent = drone.getElementsByTagName('ypos')[0].textContent;
+                            row.appendChild(yPosCell);
+
+                            table.appendChild(row);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Failed to fetch drone data: ' + err.message);
+                    });
+        </script>
     </body>
 </html>
