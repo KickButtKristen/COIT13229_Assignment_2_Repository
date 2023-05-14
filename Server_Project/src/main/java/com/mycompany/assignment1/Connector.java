@@ -71,21 +71,49 @@ class Connector extends Thread {
                 }
             }
             
-            // Checks if drone is in hashmaps for movements
+                    // Checks if drone is in hashmaps for movements
             // If so sets movementRequired to true, updates drone X and Y positions
             for (Integer i : Server.newXPositions.keySet()) {
                 if (i == tempDrone.getId()) {
-                    movementRequired = true;
-                    tempDrone.setXpos(Server.newXPositions.get(i));
-                    Server.newXPositions.remove(i);
+                    int targetX = Server.newXPositions.get(i);
+
+                    // Check if the drone has reached the target
+                    if (tempDrone.getXpos() != targetX) {
+                        movementRequired = true;
+
+                        // Calculate the next step towards the target position
+                        int stepX = targetX > tempDrone.getXpos() ? 1 : -1;
+
+                        // Update the drone's position
+                        tempDrone.setXpos(tempDrone.getXpos() + stepX);
+                    }
+
+                    // If drone reached the target position, remove it from the map
+                    if (tempDrone.getXpos() == targetX) {
+                        Server.newXPositions.remove(i);
+                    }
                 }
             }
-            
+
             for (Integer i : Server.newYPositions.keySet()) {
                 if (i == tempDrone.getId()) {
-                    movementRequired = true;
-                    tempDrone.setYpos(Server.newYPositions.get(i));
-                    Server.newYPositions.remove(i);
+                    int targetY = Server.newYPositions.get(i);
+
+                    // Check if the drone has reached the target
+                    if (tempDrone.getYpos() != targetY) {
+                        movementRequired = true;
+
+                        // Calculate the next step towards the target position
+                        int stepY = targetY > tempDrone.getYpos() ? 1 : -1;
+
+                        // Update the drone's position
+                        tempDrone.setYpos(tempDrone.getYpos() + stepY);
+                    }
+
+                    // If drone reached the target position, remove it from the map
+                    if (tempDrone.getYpos() == targetY) {
+                        Server.newYPositions.remove(i);
+                    }
                 }
             }
             
@@ -155,8 +183,6 @@ class Connector extends Thread {
         }catch (EOFException e){System.out.println("EOF:"+e.getMessage());
         } catch(IOException e) {System.out.println("readline:"+e.getMessage());
 	} catch(ClassNotFoundException ex){ ex.printStackTrace();
-	} catch (SQLException ex) {
-            Logger.getLogger(Connector.class.getName()).log(Level.SEVERE, null, ex);
-        } finally{ try {clientSocket.close();}catch (IOException e){/*close failed*/}}
+	} finally{ try {clientSocket.close();}catch (IOException e){/*close failed*/}}
     }
 }

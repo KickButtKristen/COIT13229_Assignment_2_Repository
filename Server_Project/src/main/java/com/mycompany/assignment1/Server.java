@@ -28,6 +28,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     // ArrayLists for Drone and Fire Objects
     static ArrayList<DroneDetails> drones = new ArrayList<>();
     static ArrayList<FireDetails> fires = new ArrayList<>();
+    static ArrayList<FiretruckDetails> fireTrucks = new ArrayList<>();
     
     // GUI Setup, all elements of GUI declared
     private JLabel titleText = new JLabel("Drone Server");
@@ -38,6 +39,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     private JButton deleteButton = new JButton("Delete Fire");
     private JButton recallButton = new JButton("Recall Drones");
     private JButton moveButton = new JButton("Move Drone");
+    private JButton sendFireTruckButton = new JButton("Send Firetruck");
     private JButton shutDownButton = new JButton("Shut Down");
     private JScrollPane scrollPane; // Scroll pane for the text area
     private MapPanel mapPanel;
@@ -51,10 +53,12 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
         private ArrayList<DroneDetails> drones;
         private ArrayList<FireDetails> fires;
+        private ArrayList<FiretruckDetails> fireTrucks;
 
-        public MapPanel(ArrayList<DroneDetails> drones, ArrayList<FireDetails> fires) {
+        public MapPanel(ArrayList<DroneDetails> drones, ArrayList<FireDetails> fires, ArrayList<FiretruckDetails> fireTrucks) {
             this.drones = drones;
             this.fires = fires;
+            this.fireTrucks = new ArrayList();
             
             timer = new Timer(10000, new ActionListener() {
                 @Override
@@ -76,9 +80,10 @@ public class Server extends JFrame implements ActionListener, Runnable {
             // Set background color of map panel
             setBackground(Color.WHITE);
 
-            // Fetch drones and fires from the database
+            // Fetch drones, fires and fireTrucks from the database
             ArrayList<DroneDetails> drones = getDronesFromDatabase();
             ArrayList<FireDetails> fires = getFiresFromDatabase();
+            ArrayList<FiretruckDetails> fireTrucks = getFireTrucksFromDatabase();
 
             // Draw drones as blue circles with drone id
             for (DroneDetails p : drones) {
@@ -107,9 +112,34 @@ public class Server extends JFrame implements ActionListener, Runnable {
                 g.drawString("Fire " + p.getId() + " (" + intensity + ")", x - 30, y - 5);
             }
             
+           
+
+            // Draw firetrucks as green circles at the fire location
+            for (FiretruckDetails truck : fireTrucks) {
+                for (FireDetails fire : fires) {
+                    if (fire.getId() == truck.getDesignatedFireId()) {
+                        // Converts coordinates for use on 400 by 400 grid
+                        int x = (100 - fire.getXpos()) * 2;
+                        int y = (100 - fire.getYpos()) * 2;
+                        int size = 10;
+                        g.setColor(Color.GREEN);
+                        
+                        // Calculate new position for the fire truck, adding the radius of the fire to it
+                        int truckX = x + (int)fire.getBurningAreaRadius();
+                        int truckY = y + (int)fire.getBurningAreaRadius();
+
+                        g.fillOval(truckX - size/2, truckY - size/2, size, size);
+                        g.setColor(Color.BLACK);
+                        g.drawString("Truck " + truck.getId(), truckX - 30, truckY - 5);
+                    }
+                }
+            }
+            
             
         }
         
+    
+    
     }
     
     Server() {
@@ -145,7 +175,9 @@ public class Server extends JFrame implements ActionListener, Runnable {
         buttonPanel.add(deleteButton);
         buttonPanel.add(recallButton);
         buttonPanel.add(moveButton);
+        buttonPanel.add(sendFireTruckButton);
         buttonPanel.add(shutDownButton);
+        
         
         // Bottom panel
         JPanel bottomPanel = new JPanel();
@@ -162,7 +194,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         outputPanel.add(scrollPane);
         
          // Map Panel
-        mapPanel = new MapPanel(drones, fires);
+        mapPanel = new MapPanel(drones, fires, fireTrucks);
         mapPanel.setPreferredSize(new Dimension(400, 400));
         
         // Outer Map Panel with text
@@ -189,6 +221,13 @@ public class Server extends JFrame implements ActionListener, Runnable {
         recallButton.addActionListener(this);
         moveButton.addActionListener(this);
         shutDownButton.addActionListener(this);
+        
+        sendFireTruckButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendFireTruck();
+            }
+        });
     }
     
     @Override
@@ -262,6 +301,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         return recallStatus;
     }
     
+    //Method to Add a new drone into the database if it is not already existing (compared by  Id of the drone)
     static void addDrone(DroneDetails tempDrone) {
         // Add your code to connect to the database and insert or update drone information
         String insertDrone = "INSERT INTO drone (id, name, xpos, ypos) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, xpos = ?, ypos = ?";
@@ -281,12 +321,20 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
-    static void addFire(FireDetails tempFire) throws SQLException {
-        // Add your code to connect to the database and insert fire information
+    //Method to Add a new fire report into the fire table if it is not already existing (compared by Id of the fire)
+    static void addFire(FireDetails tempFire) {
         String insertFire = "INSERT IGNORE INTO fire (id, isActive, intensity, burningAreaRadius, xpos, ypos) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = connectToDatabase();
-             PreparedStatement pstmt = conn.prepareStatement(insertFire, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setInt(1, tempFire.getId());
+             PreparedStatement pstmt = conn.prepareStatement(insertFire)) {
+
+            int id = tempFire.getId();
+
+            // Check if a fire with the same ID already exists in the database
+            if (fireExists(id)) {
+                id = generateUniqueFireId();  // Generate a new unique ID for the fire
+            }
+
+            pstmt.setInt(1, id);
             pstmt.setBoolean(2, tempFire.isActive());
             pstmt.setInt(3, tempFire.getIntensity());
             pstmt.setDouble(4, tempFire.getBurningAreaRadius());
@@ -295,20 +343,61 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
             pstmt.executeUpdate();
 
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    tempFire.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating fire failed, no ID obtained.");
-                }
-            }
+            tempFire.setId(id);
+            loadFireData();
+
         } catch (SQLIntegrityConstraintViolationException e) {
             outputLog("Fire " + tempFire.getId() + " already exists in the database.");
+        } catch (SQLException e) {
+            outputLog("Error adding fire to the database: " + e.getMessage());
         }
     }
     
-    private ArrayList getDronesFromDatabase() {
-        ArrayList drones = new ArrayList();
+    //Method to add a new fire truck response to the firetrucks table in the database (Compared by firetruck Id)
+    static void addFireTruck(FiretruckDetails fireTruck) {
+        String insertFireTruck = "INSERT INTO firetrucks (id, name, designatedFireId) VALUES (?, ?, ?)";
+        try (Connection conn = connectToDatabase();
+            PreparedStatement pstmt = conn.prepareStatement(insertFireTruck)) {
+
+            pstmt.setInt(1, fireTruck.getId());
+            pstmt.setString(2, fireTruck.getName());
+            pstmt.setInt(3, fireTruck.getDesignatedFireId());
+
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            outputLog("Error adding fire truck to the database: " + e.getMessage());
+        }
+    }
+    
+    
+    //Method to check if the fire report already exists in the database 
+    private static boolean fireExists(int id) {
+        String query = "SELECT * FROM fire WHERE id = ?";
+        try (Connection conn = connectToDatabase();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            outputLog("Error checking if fire exists in the database: " + e.getMessage());
+        }
+        return false;
+    }
+
+    //Method to give the fire reports their own unique fire report Id so that there is no overlap when trying to identify that report
+    private static int generateUniqueFireId() {
+        int id = 1;
+        while (fireExists(id)) {
+            id++;
+        }
+        return id;
+    }
+    
+    
+    
+    //ArrayList to store the DroneDetails that are received from the database. 
+    private ArrayList<DroneDetails> getDronesFromDatabase() {
+        ArrayList<DroneDetails> drones = new ArrayList<>();
 
         // Connect to the database using the existing connectToDatabase() method
         try (Connection con = connectToDatabase()) {
@@ -374,6 +463,36 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
         return fires;
     }
+    
+    private ArrayList<FiretruckDetails> getFireTrucksFromDatabase() {
+        ArrayList<FiretruckDetails> fireTrucks = new ArrayList<>();
+
+        try (Connection con = connectToDatabase()) {
+            if (con != null) {
+                Statement stmt = con.createStatement();
+                String query = "SELECT id, name, designatedFireId FROM firetrucks";
+                ResultSet rs = stmt.executeQuery(query);
+
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    String name = rs.getString("name");
+                    int designatedFireId = rs.getInt("designatedFireId");
+
+                    FiretruckDetails fireTruck = new FiretruckDetails(id, name, designatedFireId);
+                    fireTrucks.add(fireTruck);
+                }
+
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching fire truck data: " + e.getMessage());
+        }
+
+        return fireTrucks;
+    }
+
+
 
 
 
@@ -431,7 +550,37 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
-    
+    static void initialDronePosition(ObjectOutputStream out, DroneDetails currentDrone) {
+        String query = "SELECT * FROM drone WHERE id = ?";
+        boolean droneFound = false;
+
+        try (Connection connection = connectToDatabase();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, currentDrone.getId());
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int xpos = resultSet.getInt("xpos");
+                int ypos = resultSet.getInt("ypos");
+
+                out.writeObject(xpos);
+                out.writeObject(ypos);
+
+                droneFound = true;
+            }
+
+            if (!droneFound) {
+                out.writeObject(0);
+                out.writeObject(0);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error getting drone initial position: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Error sending drone initial position: " + e.getMessage());
+        }
+    }
     
     public void deleteFire() {
         // Triggered by Delete Fire Button
@@ -468,6 +617,17 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
             if (numRowsAffected > 0) {
                 outputLog("Fire " + intId + " removed.");
+
+                // Remove fire trucks assigned to this fire
+                String queryTruck = "DELETE FROM firetrucks WHERE designatedFireId = ?";
+                PreparedStatement stmtTruck = conn.prepareStatement(queryTruck);
+                stmtTruck.setInt(1, intId);
+                int trucksAffected = stmtTruck.executeUpdate();
+
+                if (trucksAffected > 0) {
+                    outputLog("Firetrucks assigned to Fire " + intId + " removed.");
+                }
+
             } else {
                 outputLog("Fire " + intId + " not found.");
             }
@@ -479,6 +639,73 @@ public class Server extends JFrame implements ActionListener, Runnable {
             JOptionPane.showMessageDialog(null, "An error occurred while deleting the fire.");
         }
     }
+    
+    
+    public void sendFireTruck() {
+        // Triggered by Send Fire Truck Button
+        // intId is the id that'll be entered
+        int intId = -1;
+
+        /*
+        Opens Option Pane prompting for a Fire ID
+        If cancel is pressed, null will be returned causing the loop to break
+        otherwise it'll attempt to parse the ID to int, if this fails the user will be reprompted after an error message
+        */
+        while (true) {
+            String enteredId = JOptionPane.showInputDialog(null, "Enter the Fire ID to Extinguish");
+            if (enteredId == null) {
+                return;
+            }
+            try {
+                intId = Integer.parseInt(enteredId);
+                break;
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "ID must be numerical.");
+            }
+        }
+
+        // Find the fire with the given ID
+        for (FireDetails fire : fires) {
+            if (fire.getId() == intId) {
+                // Create a new FireTruckDetails object and add it to the fireTrucks ArrayList
+                FiretruckDetails newTruck = new FiretruckDetails(fireTrucks.size() + 1, "FireTruck " + (fireTrucks.size() + 1), intId);
+                fireTrucks.add(newTruck);
+                addFireTruck(newTruck);
+                // Repaint the panel to show the new fire truck
+                repaint();
+                return;
+            }
+        }
+
+        // If we get here, the fire with the given ID was not found
+        JOptionPane.showMessageDialog(null, "Fire with ID " + intId + " not found.");
+    }
+    
+    
+    static boolean droneByIdCheck(int droneId) {
+        String query = "SELECT id FROM drone WHERE id = ?";
+
+        try (Connection connection = connectToDatabase();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, droneId);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                // the drone id exists in the database
+                return true;
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error checking drone existence: " + e.getMessage());
+        }
+
+        // the drone id was not found in the database
+        return false;
+    }
+    
+    
+    
     
     public void recallDrones() {
         // Checks if a recall is initiated
@@ -492,85 +719,70 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
     
     public void moveDrone() {
-        // Triggered by move drone button
-        // Initialisation of variables, -0 does not exist as a coordinate
+        // Initialization of variables
         int intId = -1;
         int newX = -0;
         int newY = -0;
-        boolean droneExists = false;
-        
-        /*
-        Opens Option Pane prompting for a Drone ID
-        If cancel is pressed, null will be returned causing the loop to break
-        otherwise it'll attempt to parse the ID to int, if this fails the user will be reprompted after an error message
-        */
-        while (true) {
-            String enteredId = JOptionPane.showInputDialog(null, "Enter ID of drone to be moved.");
-            if (enteredId == null) {
+        boolean droneCheck;
+
+        // Get drone id
+            String strId = JOptionPane.showInputDialog("Enter the drone ID:");
+            try {
+                intId = Integer.parseInt(strId);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Invalid drone ID. Please enter a valid integer.");
                 return;
             }
-            try {
-                intId = Integer.parseInt(enteredId);
-                break;
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(null, "ID must be numerical.");
-            }
-        }
-        
-        // Searches for ArrayList to check if a drone with the ID entered exists
-        // If drone is active then it is good to be moved and droneExists is changed to true
-        for (DroneDetails p : drones) {
-            if (p.getId() == intId) {
-                if (p.getActive()) {
-                    droneExists = true;
-                }
-            }
-        }
-        
-        // If no drone exists that is active then droneExists will be false and the user will be given an error message
-        if (!droneExists) {
-            JOptionPane.showMessageDialog(null, "Drone with ID " + intId + " does not exist or is not active.");
+
+        // Check if the drone with the given ID exists
+        droneCheck = droneByIdCheck(intId);
+
+        // Get new X position from the user
+        String strNewX = JOptionPane.showInputDialog("Enter the new X position:");
+        try {
+            newX = Integer.parseInt(strNewX);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Invalid X position. Please enter a valid integer.");
             return;
         }
-        
-        // Opens option pane prompting user to enter an X position for the drone to be moved to
-        while (true) {
-            String enteredX = JOptionPane.showInputDialog(null, "Enter new X position for drone " + intId + ".");
-            if (enteredX == null) {
-                return;
-            }
-            try {
-                newX = Integer.parseInt(enteredX);
-                break;
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(null, "ID must be numerical.");
-            }
+
+        // Get new Y position from the user
+        String strNewY = JOptionPane.showInputDialog("Enter the new Y position:");
+        try {
+            newY = Integer.parseInt(strNewY);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Invalid Y position. Please enter a valid integer.");
+            return;
         }
-        
-        // Opens option pane prompting user to enter an X position for the drone to be moved to
-        while (true) {
-            String enteredY = JOptionPane.showInputDialog(null, "Enter new Y position for drone " + intId + ".");
-            if (enteredY == null) {
-                return;
-            }
+
+        if (droneCheck) {
             try {
-                newY = Integer.parseInt(enteredY);
-                break;
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(null, "ID must be numerical.");
+                // Create a new database connection
+                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/ibdms_server?useSSL=false", "test", "test");
+
+                // Get new X and Y positions
+                // ...
+
+                // Update the drone's position in the database
+                String updateQuery = "UPDATE drone SET xpos = ?, ypos = ? WHERE id = ?";
+                PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                updateStmt.setInt(1, newX);
+                updateStmt.setInt(2, newY);
+                updateStmt.setInt(3, intId);
+                updateStmt.executeUpdate();
+
+                // Outputs message to confirm move
+                outputLog("Drone " + intId + " will be moved to " + newX + ", " + newY + ".");
+
+                // Close the resources
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "An error occurred while moving the drone.");
             }
+        } else {
+            System.out.println("Drone with id " + intId + " does not exist.");
         }
-        
-        // Removes drone id from hash map in case it's there
-        newXPositions.remove(intId);
-        newYPositions.remove(intId);
-        
-        // When all information has been inputted, ids and new positions are added to hash maps
-        newXPositions.put(intId, newX);
-        newYPositions.put(intId, newY);
-        
-        // Outputs message to confirm move
-        outputLog("Drone " + intId + " will be moved to " + newX + ", " + newY + ".");
     }
     
     public void shutDown() {
