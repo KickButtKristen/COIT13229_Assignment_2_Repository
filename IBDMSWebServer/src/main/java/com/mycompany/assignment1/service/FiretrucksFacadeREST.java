@@ -1,15 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.mycompany.assignment1.service;
 
 import com.mycompany.assignment1.Firetrucks;
 import java.util.List;
-import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -24,12 +19,11 @@ import javax.ws.rs.core.MediaType;
  *
  * @author Kristen
  */
-@Stateless
 @Path("com.mycompany.assignment1.firetrucks")
 public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
 
-    @PersistenceContext(unitName = "com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU")
-    private EntityManager em;
+    private EntityManagerFactory emf = Persistence.createEntityManagerFactory("com.mycompany_IBDMSWebServer_war_1.0-SNAPSHOTPU");
+    private EntityManager em = emf.createEntityManager();
 
     public FiretrucksFacadeREST() {
         super(Firetrucks.class);
@@ -39,20 +33,44 @@ public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
     @Override
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void create(Firetrucks entity) {
-        super.create(entity);
+        try {
+            em.getTransaction().begin();
+            super.create(entity);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+        }
     }
 
     @PUT
     @Path("{id}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void edit(@PathParam("id") Integer id, Firetrucks entity) {
-        super.edit(entity);
+        try {
+            em.getTransaction().begin();
+            super.edit(entity);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+        }
     }
 
     @DELETE
     @Path("{id}")
     public void remove(@PathParam("id") Integer id) {
-        super.remove(super.find(id));
+        try {
+            em.getTransaction().begin();
+            super.remove(super.find(id));
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+        }
     }
 
     @GET
@@ -87,5 +105,4 @@ public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
     protected EntityManager getEntityManager() {
         return em;
     }
-    
 }

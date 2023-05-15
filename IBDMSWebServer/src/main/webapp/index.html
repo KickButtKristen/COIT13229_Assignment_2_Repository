@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Drone Data</title>
+        <title>Data Overview</title>
     </head>
     <body>
+        <br>
+        
+        <h2>Drone Data</h2>
         <table id="droneTable">
             <thead>
                 <tr>
@@ -16,48 +19,168 @@
             <tbody>
             </tbody>
         </table>
+        <br>
+
+        <h2>Fire Data</h2>
+        <table id="fireTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Is Active</th>
+                    <th>Intensity</th>
+                    <th>Burning Area Radius</th>
+                    <th>X Position</th>
+                    <th>Y Position</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <br>
+        
+        <h2>Firetruck Data</h2>
+        <table id="firetruckTable">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>name</th>
+                    <th>designatedFireId</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <br>
 
         <script>
             // Fetch drone data from the server
             fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.drone')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('HTTP error ' + response.status);
-                        }
-                        return response.text(); // get the response body as text
-                    })
-                    .then(str => { // parse the text as XML
-                        let parser = new DOMParser();
-                        return parser.parseFromString(str, "text/xml");
-                    })
-                    .then(data => {
-                        const table = document.getElementById('droneTable');
-                        let drones = data.getElementsByTagName('drone');
-                        for (let drone of drones) {
-                            const row = document.createElement('tr');
-                            
-                            const idCell = document.createElement('td');
-                            idCell.textContent = drone.getElementsByTagName('id')[0].textContent;
-                            row.appendChild(idCell);
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error ' + response.status);
+                    }
+                    return response.text(); // get the response body as text
+                })
+                .then(str => { // parse the text as XML
+                    let parser = new DOMParser();
+                    return parser.parseFromString(str, "text/xml");
+                })
+                .then(data => populateDroneTable(data, 'droneTable'))
+                .catch(err => console.error('Failed to fetch drone data: ' + err.message));
 
-                            const nameCell = document.createElement('td');
-                            nameCell.textContent = drone.getElementsByTagName('name')[0].textContent;
-                            row.appendChild(nameCell);
+            function populateDroneTable(data, tableId) {
+                const table = document.getElementById(tableId);
+                let drones = data.getElementsByTagName('drone');
+                for (let drone of drones) {
+                    const row = document.createElement('tr');
 
-                            const xPosCell = document.createElement('td');
-                            xPosCell.textContent = drone.getElementsByTagName('xpos')[0].textContent;
-                            row.appendChild(xPosCell);
+                    const idCell = document.createElement('td');
+                    idCell.textContent = drone.getElementsByTagName('id')[0].textContent;
+                    row.appendChild(idCell);
 
-                            const yPosCell = document.createElement('td');
-                            yPosCell.textContent = drone.getElementsByTagName('ypos')[0].textContent;
-                            row.appendChild(yPosCell);
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = drone.getElementsByTagName('name')[0].textContent;
+                    row.appendChild(nameCell);
 
-                            table.appendChild(row);
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Failed to fetch drone data: ' + err.message);
-                    });
+                    const xPosCell = document.createElement('td');
+                    xPosCell.textContent = drone.getElementsByTagName('xpos')[0].textContent;
+                    row.appendChild(xPosCell);
+
+                    const yPosCell = document.createElement('td');
+                    yPosCell.textContent = drone.getElementsByTagName('ypos')[0].textContent;
+                    row.appendChild(yPosCell);
+
+                    table.appendChild(row);
+                }
+            }
+
+                // Fetch fire data from the server
+            fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.fire')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error ' + response.status);
+                    }
+                    return response.text(); // get the response body as text
+                })
+                .then(str => { // parse the text as XML
+                    let parser = new DOMParser();
+                    return parser.parseFromString(str, "text/xml");
+                })
+                .then(data => populateFireTable(data, 'fireTable'))
+                .catch(err => console.error('Failed to fetch fire data: ' + err.message));
+
+            function populateFireTable(data, tableId) {
+                const table = document.getElementById(tableId);
+                let fires = data.getElementsByTagName('fire');
+                for (let fire of fires) {
+                    const row = document.createElement('tr');
+
+                    const idCell = document.createElement('td');
+                    idCell.textContent = fire.getElementsByTagName('id')[0].textContent;
+                    row.appendChild(idCell);
+
+                    const isActiveCell = document.createElement('td');
+                    isActiveCell.textContent = fire.getElementsByTagName('isActive')[0].textContent;
+                    row.appendChild(isActiveCell);
+
+                    const intensityCell = document.createElement('td');
+                    intensityCell.textContent = fire.getElementsByTagName('intensity')[0].textContent;
+                    row.appendChild(intensityCell);
+
+                    const burningAreaRadiusCell = document.createElement('td');
+                    burningAreaRadiusCell.textContent = fire.getElementsByTagName('burningAreaRadius')[0].textContent;
+                    row.appendChild(burningAreaRadiusCell);
+
+                    const xPosCell = document.createElement('td');
+                    xPosCell.textContent = fire.getElementsByTagName('xpos')[0].textContent;
+                    row.appendChild(xPosCell);
+
+                    const yPosCell = document.createElement('td');
+                    yPosCell.textContent = fire.getElementsByTagName('ypos')[0].textContent;
+                    row.appendChild(yPosCell);
+
+                    table.appendChild(row);
+                }
+            }
+
+            // Fetch firetruck data from the server
+            fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.firetrucks')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error ' + response.status);
+                    }
+                    return response.text(); // get the response body as text
+                })
+                .then(str => { // parse the text as XML
+                    let parser = new DOMParser();
+                    return parser.parseFromString(str, "text/xml");
+                })
+                .then(data => populateFiretruckTable(data, 'firetruckTable'))
+                .catch(err => console.error('Failed to fetch firetruck data: ' + err.message));
+
+            function populateFiretruckTable(data, tableId) {
+                const table = document.getElementById(tableId);
+                let firetrucks = data.getElementsByTagName('firetrucks');
+                for (let firetruck of firetrucks) {
+                    const row = document.createElement('tr');
+
+                    const idCell = document.createElement('td');
+                    idCell.textContent = firetruck.getElementsByTagName('id')[0].textContent;
+                    row.appendChild(idCell);
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = firetruck.getElementsByTagName('name')[0].textContent;
+                    row.appendChild(nameCell);
+
+                    const designatedFireIdCell = document.createElement('td');
+                    designatedFireIdCell.textContent = firetruck.getElementsByTagName('designatedFireId')[0].textContent;
+                    row.appendChild(designatedFireIdCell);
+
+                    table.appendChild(row);
+                }
+            }
+
+
         </script>
     </body>
 </html>
