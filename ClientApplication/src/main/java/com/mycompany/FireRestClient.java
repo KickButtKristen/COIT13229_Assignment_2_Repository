@@ -26,7 +26,7 @@ public class FireRestClient {
 
     private WebTarget webTarget;
     private Client client;
-    private static final String BASE_URI = "http://localhost:8080//webresources";
+    private static final String BASE_URI = "https://localhost:8080/IBDMSWebServer/webresources/";
 
     public FireRestClient() {
         client = javax.ws.rs.client.ClientBuilder.newClient();

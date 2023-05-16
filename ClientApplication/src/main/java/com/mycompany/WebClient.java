@@ -33,7 +33,7 @@ public class WebClient {
     
     private WebTarget webTarget;
     private Client client;
-    private static final String BASE_URI = "https://localhost:8080//webresources";
+    private static final String BASE_URI = "https://localhost:8080/IBDMSWebServer/webresources/";
 
     public WebClient() {
         SSLContext sslcontext = createTrustAllSSLContext();  // Create a trust-all SSLContext
