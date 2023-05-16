@@ -5,6 +5,9 @@
  */
 package com.mycompany;
 
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.*;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.WebTarget;
@@ -26,13 +29,48 @@ public class FireRestClient {
 
     private WebTarget webTarget;
     private Client client;
-    private static final String BASE_URI = "https://localhost:8080/IBDMSWebServer/webresources/";
+    private static final String BASE_URI = "http://localhost:8080/IBDMSWebServer/webresources/";
 
     public FireRestClient() {
-        client = javax.ws.rs.client.ClientBuilder.newClient();
+        /**
+         * SSL Stuff 
+         */
+        /*
+        SSLContext sslContext = createTrustAllSslContext();
+        HostnameVerifier allHostsValid = (hostname, session) -> true;
+        
+        client = javax.ws.rs.client.ClientBuilder.newBuilder()
+                .sslContext(sslContext)
+                .hostnameVerifier(allHostsValid)
+                .build();
+        
         webTarget = client.target(BASE_URI).path("com.mycompany.fire");
+        */
+        
+        // Non-SSL connection
+        client = javax.ws.rs.client.ClientBuilder.newClient();
+        webTarget = client.target(BASE_URI).path("com.mycompany.assignment1.fire");
     }
-
+    /** 
+     * more SSL stuff
+     * @return sslContext
+     */
+    private SSLContext createTrustAllSslContext() {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                public void checkClientTrusted(X509Certificate[] certs, String authType) { }
+                public void checkServerTrusted(X509Certificate[] certs, String authType) { }
+                    
+                }};
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            return sslContext;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create SSL Context", e);
+        }
+    }
+    
     public String countREST() throws ClientErrorException {
         WebTarget resource = webTarget;
         resource = resource.path("count");
