@@ -6,12 +6,15 @@
 package com.mycompany;
 
 import javax.swing.*;
+import java.util.List;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import javax.ws.rs.ClientErrorException;
 
 public class ClientApplicationGUI {
+
     private JFrame frame;
     private JTextArea reportArea;
     private JTextArea messageArea;
@@ -88,23 +91,91 @@ public class ClientApplicationGUI {
         frame.getContentPane().add(buttonPanel, constraints);
 
         /**
-         * This button INSERTs a new firetruck into the database by assigning it to an existing fire ID
-         * 
+         * This button INSERTs a new firetruck into the database by assigning it
+         * to an existing fire ID
+         *
          */
         JButton btnSendRequest = new JButton("Send Fire Truck");
         btnSendRequest.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Send request to server
-                //TODO add some logic to send a firetruck to fires that have isActive as 1
-                
-   
+
+                // Show JOptionPane input dialog for new firetruck name
+                String firetruckName = JOptionPane.showInputDialog(null, "Enter firetruck name: ");
+
+                if (firetruckName != null && !firetruckName.isEmpty()) {
+                    try {
+                        FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
+                        FireRestClient fireRestClient = new FireRestClient();
+
+                        // add all fires to array then loop to add only active fires to array
+                        Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
+                        List<Fire> activeFiresList = new ArrayList<>();
+                        for (Fire f : fires) {
+                            if (f.getIsActive() == 1) {
+                                activeFiresList.add(f);
+                            }
+                        }
+                        Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
+
+                        // Create string array for display to user of fire options
+                        String[] fireOptions = new String[activeFires.length];
+                        for (int i = 0; i < activeFires.length; i++) {
+                            fireOptions[i] = "ID: " + activeFires[i].getId() + " : POS["
+                                    + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "] : "
+                                    + "Inty: " + activeFires[i].getIntensity() + " : "
+                                    + "BR: " + activeFires[i].getBurningAreaRadius();
+
+                        }
+
+                        // Display JOptionPane for fire options and get the fire ID of selection
+                        String selectedFireOption = (String) JOptionPane.showInputDialog(
+                                null,
+                                "Select Fire: ",
+                                "Select Fire",
+                                JOptionPane.QUESTION_MESSAGE,
+                                null,
+                                fireOptions,
+                                fireOptions[0]
+                        );
+                        
+                        // Get the fire ID from selected fire
+                        int selectedFireId = Integer.parseInt(selectedFireOption.split(":")[1].trim());
+                        
+                        // Create new firetrucks object from input
+                        Firetrucks newFiretruck = new Firetrucks();
+                        newFiretruck.setName(firetruckName);
+                        newFiretruck.setDesignatedFireId(selectedFireId);
+                        
+                        
+                        /**
+                         * TODO: Find out why this isnt adding it to the SQL database - 
+                         * perhaps something on serverside?
+                         */
+                        // send firetruck to server to insert to DB
+                        firetrucksRestClient.create_JSON(newFiretruck);
+                        
+                        // success msg
+                        messageArea.append("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
+                        
+                        // close
+                        firetrucksRestClient.close();
+                        
+                    } catch (ClientErrorException ex) {
+                        ex.printStackTrace();
+                        messageArea.append("Error inserting firetruck: " + ex.getMessage() + "\n");
+                    }
+                } else {
+                    // If fire truck name is empty or null...
+                    messageArea.append("Firetruck name cannot be empty!");
+                }
             }
         });
         buttonPanel.add(btnSendRequest);
-        
+
         /**
          * This button requests a report of all existing firetrucks
-         * 
+         *
          */
         JButton btnGetFiretrucksReport = new JButton("Get Firetrucks Report");
         btnGetFiretrucksReport.addActionListener(new ActionListener() {
@@ -113,7 +184,7 @@ public class ClientApplicationGUI {
                     FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
                     Firetrucks[] firetrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
                     StringBuilder reportBuilder = new StringBuilder();
-                    
+
                     for (Firetrucks ft : firetrucks) {
                         reportBuilder.append("Firetruck ID: ").append(ft.getId()).append("\n")
                                 .append("Firetruck name: ").append(ft.getName()).append("\n")
@@ -128,11 +199,10 @@ public class ClientApplicationGUI {
             }
         });
         buttonPanel.add(btnGetFiretrucksReport);
-        
-        
+
         /**
          * This button requests a report of all existing fires
-         * 
+         *
          */
         JButton btnGetReport = new JButton("Get Fire Report");
         btnGetReport.addActionListener(new ActionListener() {
@@ -144,10 +214,10 @@ public class ClientApplicationGUI {
                     StringBuilder reportBuilder = new StringBuilder();
                     for (Fire fire : fires) {
                         reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
-                                     .append("Active: ").append(fire.getIsActive() == 1 ? "Yes" : "No").append("\n")
-                                     .append("Intensity: ").append(fire.getIntensity()).append("\n")
-                                     .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
-                                     .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
+                                .append("Active: ").append(fire.getIsActive() == 1 ? "Yes" : "No").append("\n")
+                                .append("Intensity: ").append(fire.getIntensity()).append("\n")
+                                .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
+                                .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
                     }
                     reportArea.setText(reportBuilder.toString());
                     fireRestClient.close();
@@ -159,9 +229,10 @@ public class ClientApplicationGUI {
         });
         buttonPanel.add(btnGetReport);
 
-        /** 
-         * This button requests fire reports from inactive fires that are stored on the server
-         * 
+        /**
+         * This button requests fire reports from inactive fires that are stored
+         * on the server
+         *
          */
         JButton btnGetPreviousReports = new JButton("Get Previous Fire Reports");
         btnGetPreviousReports.addActionListener(new ActionListener() {
@@ -172,9 +243,9 @@ public class ClientApplicationGUI {
         });
         buttonPanel.add(btnGetPreviousReports);
 
-        /** 
+        /**
          * This button closes the application
-         * 
+         *
          */
         JButton btnShutdown = new JButton("Shutdown");
         btnShutdown.addActionListener(new ActionListener() {
