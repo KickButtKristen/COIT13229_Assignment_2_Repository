@@ -5,10 +5,15 @@
  */
 package com.mycompany;
 
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 
 /**
@@ -31,7 +36,8 @@ public class WebClient {
     private static final String BASE_URI = "https://localhost:8080//webresources";
 
     public WebClient() {
-        client = javax.ws.rs.client.ClientBuilder.newBuilder().build(); //add this back between the () and . build for SSL attempt .sslContext(getSSLContext())
+        SSLContext sslcontext = createTrustAllSSLContext();  // Create a trust-all SSLContext
+        client = ClientBuilder.newBuilder().sslContext(sslcontext).build();  
         webTarget = client.target(BASE_URI).path("com.mycompany.assignment1.fire");
     }
 
@@ -117,32 +123,28 @@ public class WebClient {
         };
     }
 
-    /*
-    private SSLContext getSSLContext() {
-        // for alternative implementation checkout org.glassfish.jersey.SslConfigurator
-        javax.net.ssl.TrustManager x509 = new javax.net.ssl.X509TrustManager() {
-            @Override
-            public void checkClientTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
-                return;
-            }
-
-            @Override
-            public void checkServerTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
-                return;
-            }
-
-            @Override
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-        };
-        SSLContext ctx = null;
+    
+    private SSLContext createTrustAllSSLContext() {
         try {
-            ctx = SSLContext.getInstance("SSL");
-            ctx.init(null, new javax.net.ssl.TrustManager[]{x509}, null);
-        } catch (java.security.GeneralSecurityException ex) {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                    }
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                    }
+                }
+            };
+
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            return sslContext;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return ctx;
     }
-    */
+    
 }
