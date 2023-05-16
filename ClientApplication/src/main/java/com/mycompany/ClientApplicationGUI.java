@@ -87,15 +87,53 @@ public class ClientApplicationGUI {
         constraints.fill = GridBagConstraints.HORIZONTAL;
         frame.getContentPane().add(buttonPanel, constraints);
 
+        /**
+         * This button INSERTs a new firetruck into the database by assigning it to an existing fire ID
+         * 
+         */
         JButton btnSendRequest = new JButton("Send Fire Truck");
         btnSendRequest.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Send request to server
                 //TODO add some logic to send a firetruck to fires that have isActive as 1
+                
+   
             }
         });
         buttonPanel.add(btnSendRequest);
-
+        
+        /**
+         * This button requests a report of all existing firetrucks
+         * 
+         */
+        JButton btnGetFiretrucksReport = new JButton("Get Firetrucks Report");
+        btnGetFiretrucksReport.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
+                    Firetrucks[] firetrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
+                    StringBuilder reportBuilder = new StringBuilder();
+                    
+                    for (Firetrucks ft : firetrucks) {
+                        reportBuilder.append("Firetruck ID: ").append(ft.getId()).append("\n")
+                                .append("Firetruck name: ").append(ft.getName()).append("\n")
+                                .append("Designated to fire ID: ").append(ft.getDesignatedFireId()).append("\n\n");
+                    }
+                    reportArea.setText(reportBuilder.toString());
+                    firetrucksRestClient.close();
+                } catch (ClientErrorException ex) {
+                    ex.printStackTrace();
+                    messageArea.append("Error getting firetrucks report: " + ex.getMessage() + "\n");
+                }
+            }
+        });
+        buttonPanel.add(btnGetFiretrucksReport);
+        
+        
+        /**
+         * This button requests a report of all existing fires
+         * 
+         */
         JButton btnGetReport = new JButton("Get Fire Report");
         btnGetReport.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -121,6 +159,10 @@ public class ClientApplicationGUI {
         });
         buttonPanel.add(btnGetReport);
 
+        /** 
+         * This button requests fire reports from inactive fires that are stored on the server
+         * 
+         */
         JButton btnGetPreviousReports = new JButton("Get Previous Fire Reports");
         btnGetPreviousReports.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -130,6 +172,10 @@ public class ClientApplicationGUI {
         });
         buttonPanel.add(btnGetPreviousReports);
 
+        /** 
+         * This button closes the application
+         * 
+         */
         JButton btnShutdown = new JButton("Shutdown");
         btnShutdown.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
