@@ -6,6 +6,7 @@
 package com.mycompany.assignment1;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  *
@@ -63,4 +64,25 @@ public class FiretruckDetails implements Serializable {
                "Name: " + name + "\n" +
                "Designated Fire ID: " + designatedFireId + "\n";
     }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        FiretruckDetails that = (FiretruckDetails) obj;
+        return id == that.id &&
+               designatedFireId == that.designatedFireId &&
+               Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, designatedFireId);
+    }
+    
+    
 }

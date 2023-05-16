@@ -19,6 +19,10 @@ import java.sql.Statement;
 
 import com.mycompany.assignment1.Connector;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class Server extends JFrame implements ActionListener, Runnable {
     
@@ -59,7 +63,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
             this.drones = drones;
             this.fires = fires;
             this.fireTrucks = new ArrayList();
-            
+
             timer = new Timer(10000, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -68,7 +72,24 @@ public class Server extends JFrame implements ActionListener, Runnable {
                 }
             });
             timer.start();
-            
+
+            ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+
+            // Get the initial list of firetrucks
+            this.fireTrucks = getFireTrucksFromDatabase();
+
+            // Set up a task to run every 10 seconds
+            executorService.scheduleAtFixedRate(() -> {
+                ArrayList<FiretruckDetails> updatedFireTrucks = getFireTrucksFromDatabase();
+
+                // Check if the list of firetrucks has changed
+                if (!updatedFireTrucks.equals(this.fireTrucks)) {
+                    this.fireTrucks = updatedFireTrucks;
+
+                    // Repaint the panel if the list of firetrucks has changed
+                    repaint();
+                }
+            }, 0, 10, TimeUnit.SECONDS);
         }
         
         
@@ -491,12 +512,6 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
         return fireTrucks;
     }
-
-
-
-
-
-
 
 
     
