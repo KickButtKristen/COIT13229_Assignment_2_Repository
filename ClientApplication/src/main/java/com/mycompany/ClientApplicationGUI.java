@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.mycompany.clientapplication;
+package com.mycompany;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,8 +14,10 @@ public class ClientApplicationGUI {
     private JFrame frame;
     private JTextArea reportArea;
     private JTextArea messageArea;
+    private WebClient webClient;
 
     public ClientApplicationGUI() {
+        webClient = new WebClient();
         initialize();
     }
 
@@ -95,7 +97,20 @@ public class ClientApplicationGUI {
         btnGetReport.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Get fire report from server
-                //TODO add some logic to get reports of fires with isActive as 1
+                try {
+                    Fire[] fires = webClient.findAll_JSON(Fire[].class);
+                    StringBuilder reportBuilder = new StringBuilder();
+                    for (Fire fire : fires) {
+                        reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
+                                     .append("Active: ").append(fire.getIsActive() == 1 ? "Yes" : "No").append("\n")
+                                     .append("Intensity: ").append(fire.getIntensity()).append("\n")
+                                     .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
+                                     .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
+                    }
+                    reportArea.setText(reportBuilder.toString());
+                } catch (Exception exception) {
+                    messageArea.append("Error getting fire report: " + exception.getMessage() + "\n");
+                }
             }
         });
         buttonPanel.add(btnGetReport);
