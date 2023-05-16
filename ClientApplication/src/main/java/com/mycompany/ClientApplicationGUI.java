@@ -9,15 +9,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.ws.rs.ClientErrorException;
 
 public class ClientApplicationGUI {
     private JFrame frame;
     private JTextArea reportArea;
     private JTextArea messageArea;
     private WebClient webClient;
+    private FireRestClient fireRestClient;
 
     public ClientApplicationGUI() {
         webClient = new WebClient();
+        fireRestClient = new FireRestClient();
         initialize();
     }
 
@@ -98,7 +101,8 @@ public class ClientApplicationGUI {
             public void actionPerformed(ActionEvent e) {
                 // Get fire report from server
                 try {
-                    Fire[] fires = webClient.findAll_JSON(Fire[].class);
+                    FireRestClient fireRestClient = new FireRestClient();
+                    Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
                     StringBuilder reportBuilder = new StringBuilder();
                     for (Fire fire : fires) {
                         reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
@@ -108,7 +112,9 @@ public class ClientApplicationGUI {
                                      .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
                     }
                     reportArea.setText(reportBuilder.toString());
-                } catch (Exception exception) {
+                    fireRestClient.close();
+                } catch (ClientErrorException exception) {
+                    exception.printStackTrace();
                     messageArea.append("Error getting fire report: " + exception.getMessage() + "\n");
                 }
             }

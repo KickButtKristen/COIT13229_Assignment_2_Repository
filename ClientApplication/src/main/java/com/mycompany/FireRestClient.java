@@ -5,15 +5,8 @@
  */
 package com.mycompany;
 
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 
 /**
@@ -21,7 +14,7 @@ import javax.ws.rs.client.WebTarget;
  * [com.mycompany.assignment1.fire]<br>
  * USAGE:
  * <pre>
- *        WebClient client = new WebClient();
+ *        FireRestClient client = new FireRestClient();
  *        Object response = client.XXX(...);
  *        // do whatever with response
  *        client.close();
@@ -29,21 +22,15 @@ import javax.ws.rs.client.WebTarget;
  *
  * @author Kristen
  */
-public class WebClient {
-    
+public class FireRestClient {
+
     private WebTarget webTarget;
     private Client client;
-    private static final String BASE_URI = "https://localhost:8080//webresources";
+    private static final String BASE_URI = "http://localhost:8080//webresources";
 
-    public WebClient() {
-        SSLContext sslcontext = createTrustAllSSLContext();  // Create a trust-all SSLContext
-        client = ClientBuilder.newBuilder().sslContext(sslcontext).build();  
-        webTarget = client.target(BASE_URI).path("com.mycompany.assignment1.fire");
-    }
-
-    public WebClient(String username, String password) {
-        this();
-        setUsernamePassword(username, password);
+    public FireRestClient() {
+        client = javax.ws.rs.client.ClientBuilder.newClient();
+        webTarget = client.target(BASE_URI).path("com.mycompany.fire");
     }
 
     public String countREST() throws ClientErrorException {
@@ -108,43 +95,6 @@ public class WebClient {
 
     public void close() {
         client.close();
-    }
-
-    public final void setUsernamePassword(String username, String password) {
-        webTarget.register(new org.glassfish.jersey.client.filter.HttpBasicAuthFilter(username, password));
-    }
-
-    private HostnameVerifier getHostnameVerifier() {
-        return new HostnameVerifier() {
-            @Override
-            public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
-                return true;
-            }
-        };
-    }
-
-    
-    private SSLContext createTrustAllSSLContext() {
-        try {
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                    }
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                    }
-                }
-            };
-
-            sslContext.init(null, trustAllCerts, new SecureRandom());
-            return sslContext;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
     
 }
