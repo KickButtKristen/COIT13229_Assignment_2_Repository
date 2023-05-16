@@ -19,6 +19,7 @@ public class FiretruckDetails implements Serializable {
     private int id;
     private String name;
     private int designatedFireId;
+    private long activationTime;
     
     public FiretruckDetails(int id, String name, int designatedFireId) {
         this.id = id;
@@ -39,6 +40,10 @@ public class FiretruckDetails implements Serializable {
         return designatedFireId;
     }
     
+    public long getActivationTime() {
+        return activationTime;
+    }
+    
     // Setters
     public void setId(int id) {
         this.id = id;
@@ -50,6 +55,10 @@ public class FiretruckDetails implements Serializable {
     
     public void setDesignatedFireId(int designatedFireId) {
         this.designatedFireId = designatedFireId;
+    }
+    
+    public void setActivationTime(long activationTime) {
+        this.activationTime = activationTime;
     }
 
     public String toCSV() {

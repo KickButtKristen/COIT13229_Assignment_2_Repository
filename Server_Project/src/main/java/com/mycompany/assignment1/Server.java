@@ -6,6 +6,7 @@ import java.net.*;
 import java.io.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -62,7 +63,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         public MapPanel(ArrayList<DroneDetails> drones, ArrayList<FireDetails> fires, ArrayList<FiretruckDetails> fireTrucks) {
             this.drones = drones;
             this.fires = fires;
-            this.fireTrucks = new ArrayList();
+            this.fireTrucks = new ArrayList<>();
 
             timer = new Timer(10000, new ActionListener() {
                 @Override
@@ -90,6 +91,34 @@ public class Server extends JFrame implements ActionListener, Runnable {
                     repaint();
                 }
             }, 0, 10, TimeUnit.SECONDS);
+
+            // New task to check if firetruck has been assigned to a fire for more than 5 seconds
+            executorService.scheduleAtFixedRate(() -> {
+                long currentTime = System.currentTimeMillis();
+                List<FiretruckDetails> trucksToRemove = new ArrayList<>();
+                for (FiretruckDetails truck : fireTrucks) {
+                    for (FireDetails fire : fires) {
+                        if (fire.isActive() && truck.getDesignatedFireId() == fire.getId() && currentTime - truck.getActivationTime() > 5000) {
+                            fire.setActive(false);
+                            updateFireIsActive(fire.getId(), false);
+                            // Add firetruck to the list of trucks to be removed
+                            trucksToRemove.add(truck);
+
+                            // Output a message saying the fire was extinguished
+                            System.out.println("Fire " + fire.getId() + " was extinguished by firetruck " + truck.getId() + ", this fire is now classified as a historical fire.");
+                        }
+                    }
+                }
+
+                // Remove firetrucks that have extinguished their fires
+                for (FiretruckDetails truck : trucksToRemove) {
+                    fireTrucks.remove(truck);
+                    removeFireTruckFromDatabase(truck);
+                }
+                if (!trucksToRemove.isEmpty()) {
+                    repaint();
+                }
+            }, 0, 1, TimeUnit.SECONDS);
         }
         
         
@@ -122,15 +151,17 @@ public class Server extends JFrame implements ActionListener, Runnable {
 
             // Draw fires as red circles with fire id and severity
             for (FireDetails p : fires) {
-                // Converts coordinates for use on 400 by 400 grid
-                int x = (100 - p.getXpos()) * 2;
-                int y = (100 - p.getYpos()) * 2;
-                int intensity = p.getIntensity();
-                int size = (int) (p.getBurningAreaRadius() * 3); 
-                g.setColor(Color.RED);
-                g.fillOval(x - size/2, y - size/2, size, size);
-                g.setColor(Color.BLACK);
-                g.drawString("Fire " + p.getId() + " (" + intensity + ")", x - 30, y - 5);
+                if (p.isActive()) {
+                    // Converts coordinates for use on 400 by 400 grid
+                    int x = (100 - p.getXpos()) * 2;
+                    int y = (100 - p.getYpos()) * 2;
+                    int intensity = p.getIntensity();
+                    int size = (int) (p.getBurningAreaRadius() * 3); 
+                    g.setColor(Color.RED);
+                    g.fillOval(x - size/2, y - size/2, size, size);
+                    g.setColor(Color.BLACK);
+                    g.drawString("Fire " + p.getId() + " (" + intensity + ")", x - 30, y - 5);
+                }
             }
             
            
@@ -390,6 +421,19 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
+    static void removeFireTruckFromDatabase(FiretruckDetails fireTruck) {
+        String deleteFireTruck = "DELETE FROM firetrucks WHERE id = ?";
+        try (Connection conn = connectToDatabase();
+             PreparedStatement pstmt = conn.prepareStatement(deleteFireTruck)) {
+
+            pstmt.setInt(1, fireTruck.getId());
+
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            outputLog("Error removing fire truck from the database: " + e.getMessage());
+        }
+    }
+    
     
     //Method to check if the fire report already exists in the database 
     private static boolean fireExists(int id) {
@@ -597,6 +641,21 @@ public class Server extends JFrame implements ActionListener, Runnable {
         }
     }
     
+    private void updateFireIsActive(int fireId, boolean isActive) {
+        try (Connection con = connectToDatabase()) {
+            if (con != null) {
+                String query = "UPDATE fire SET isActive = ? WHERE id = ?";
+                PreparedStatement pstmt = con.prepareStatement(query);
+                pstmt.setBoolean(1, isActive);
+                pstmt.setInt(2, fireId);
+                pstmt.executeUpdate();
+                pstmt.close();
+            }
+        } catch (SQLException e) {
+            System.out.println("Error updating fire active status: " + e.getMessage());
+        }
+    }
+    
     public void deleteFire() {
         // Triggered by Delete Fire Button
         // intId is the id that'll be entered
@@ -684,6 +743,10 @@ public class Server extends JFrame implements ActionListener, Runnable {
             if (fire.getId() == intId) {
                 // Create a new FireTruckDetails object and add it to the fireTrucks ArrayList
                 FiretruckDetails newTruck = new FiretruckDetails(fireTrucks.size() + 1, "FireTruck " + (fireTrucks.size() + 1), intId);
+
+                // Set the activation time to the current time
+                newTruck.setActivationTime(System.currentTimeMillis());
+
                 fireTrucks.add(newTruck);
                 addFireTruck(newTruck);
                 // Repaint the panel to show the new fire truck
