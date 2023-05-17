@@ -167,8 +167,8 @@ public class ClientApplicationGUI {
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
                             fireOptions[i] = "ID: " + activeFires[i].getId() + " : "
-                                    + "Inty: " + activeFires[i].getIntensity() + " : "
-                                    + "BR: " + activeFires[i].getBurningAreaRadius() + " : "
+                                    + "INT-" + activeFires[i].getIntensity() + " : "
+                                    + "BR-" + activeFires[i].getBurningAreaRadius() + " : "
                                     + "POS[" + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "]";
 
                         }
