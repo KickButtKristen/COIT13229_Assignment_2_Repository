@@ -14,6 +14,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  *
@@ -30,14 +31,32 @@ public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
     }
 
     @POST
-    @Override
+    @Path("/firetrucks")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response createFiretruck(Firetrucks firetruck) {
+        try {
+            em.getTransaction().begin();
+            em.persist(firetruck);
+            em.getTransaction().commit();
+            return Response.status(Response.Status.CREATED).entity(firetruck).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        } finally {
+            em.close();
+        }
+    }
+    
+    @POST
+    @Path("{id}")
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public void create(Firetrucks entity) {
         try {
+            System.out.println("Received entity: " + entity);
             em.getTransaction().begin();
             super.create(entity);
             em.getTransaction().commit();
         } catch (Exception e) {
+            System.err.println("Error when creating entity: " + e);
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }

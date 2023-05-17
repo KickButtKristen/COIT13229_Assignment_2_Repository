@@ -4,6 +4,12 @@
         <title>Data Overview</title>
     </head>
     <body>
+        
+        <br>
+        <br>
+        <h1>Web Server Output Log</h1>
+        <pre id="log"></pre>
+        
         <br>
         
         <h2>Drone Data</h2>
@@ -51,8 +57,21 @@
             </tbody>
         </table>
         <br>
-
+        
+        
+        
+        
         <script>
+            
+            //Function to Append Messages to the Log
+            function log(message) {
+                const log = document.getElementById('log');
+                log.textContent += message + '\n';
+            }
+            
+            
+            
+            
             // Fetch drone data from the server
             fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.drone')
                 .then(response => {
@@ -66,7 +85,10 @@
                     return parser.parseFromString(str, "text/xml");
                 })
                 .then(data => populateDroneTable(data, 'droneTable'))
-                .catch(err => console.error('Failed to fetch drone data: ' + err.message));
+                .catch(err => {
+                    console.error('Failed to fetch drone data: ' + err.message);
+                    log('Failed to fetch drone data: ' + err.message);  // log the error
+                });
 
             function populateDroneTable(data, tableId) {
                 const table = document.getElementById(tableId);
@@ -94,7 +116,7 @@
                 }
             }
 
-                // Fetch fire data from the server
+            // Fetch fire data from the server
             fetch('http://localhost:8080/IBDMSWebServer/webresources/com.mycompany.assignment1.fire')
                 .then(response => {
                     if (!response.ok) {
@@ -107,7 +129,10 @@
                     return parser.parseFromString(str, "text/xml");
                 })
                 .then(data => populateFireTable(data, 'fireTable'))
-                .catch(err => console.error('Failed to fetch fire data: ' + err.message));
+                .catch(err => {
+                    console.error('Failed to fetch fire data: ' + err.message);
+                    log('Failed to fetch fire data: ' + err.message);  // log the error
+                });
 
             function populateFireTable(data, tableId) {
                 const table = document.getElementById(tableId);
@@ -156,7 +181,10 @@
                     return parser.parseFromString(str, "text/xml");
                 })
                 .then(data => populateFiretruckTable(data, 'firetruckTable'))
-                .catch(err => console.error('Failed to fetch firetruck data: ' + err.message));
+                .catch(err => {
+                    console.error('Failed to fetch firetruck data: ' + err.message);
+                    log('Failed to fetch firetruck data: ' + err.message);  // log the error
+                });
 
             function populateFiretruckTable(data, tableId) {
                 const table = document.getElementById(tableId);
@@ -179,6 +207,36 @@
                     table.appendChild(row);
                 }
             }
+            
+            const express = require('express');
+            const app = express();
+            const { Pool } = require('pg');
+
+            // Connect to your PostgreSQL database
+            const pool = new Pool({
+              user: 'test',
+              host: 'localhost',
+              database: 'test',
+              password: 'test',
+              port: 3306,
+            });
+
+            app.use(express.json()); 
+
+            // Define a POST endpoint for firetrucks
+            app.post('/firetrucks', async (req, res) => {
+                try {
+                    const { id, name, designatedFireId } = req.body;
+                    const result = await pool.query('INSERT INTO firetrucks (id, name, designatedFireId) VALUES ($1, $2, $3) RETURNING *', [id, name, designatedFireId]);
+
+                    res.status(201).send(result.rows[0]); // Send back the created firetruck
+                } catch (err) {
+                    console.error(err);
+                    res.status(500).send(err); // If there's an error, send a 500 error response
+                }
+            });
+
+            app.listen(3000, () => console.log('Server is listening on port 3000'));
 
 
         </script>
