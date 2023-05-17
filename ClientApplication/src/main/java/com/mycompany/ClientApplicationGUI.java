@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import javax.ws.rs.ClientErrorException;
 
 public class ClientApplicationGUI {
@@ -117,7 +119,15 @@ public class ClientApplicationGUI {
                             }
                         }
                         Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
-
+                        
+                        // Sort activeFires by intensity
+                        Arrays.sort(activeFires, new Comparator<Fire>() {
+                            @Override
+                            public int compare(Fire f1, Fire f2) {
+                                return Integer.compare(f2.getIntensity(), f1.getIntensity());
+                            }
+                        });
+                        
                         // Create string array for display to user of fire options
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
@@ -160,6 +170,7 @@ public class ClientApplicationGUI {
                         
                         // close
                         firetrucksRestClient.close();
+                        fireRestClient.close();
                         
                     } catch (ClientErrorException ex) {
                         ex.printStackTrace();
