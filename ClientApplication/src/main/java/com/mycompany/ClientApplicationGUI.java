@@ -166,10 +166,10 @@ public class ClientApplicationGUI {
                         // Create string array for display to user of fire options
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
-                            fireOptions[i] = "ID: " + activeFires[i].getId()
+                            fireOptions[i] = "ID: " + activeFires[i].getId() + " : "
                                     + "Inty: " + activeFires[i].getIntensity() + " : "
-                                    + " : POS[" + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "] : "
-                                    + "BR: " + activeFires[i].getBurningAreaRadius();
+                                    + "BR: " + activeFires[i].getBurningAreaRadius() + " : "
+                                    + "POS[" + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "]";
 
                         }
 
