@@ -222,6 +222,7 @@ public class Drone extends Thread {
         isManualMove = true;
     }
     
+    
     @Override
     public void run() {
         // Connect to server every 10 seconds

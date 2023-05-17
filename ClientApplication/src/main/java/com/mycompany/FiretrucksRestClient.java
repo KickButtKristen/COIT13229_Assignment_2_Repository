@@ -25,7 +25,7 @@ public class FiretrucksRestClient {
 
     private WebTarget webTarget;
     private Client client;
-    private static final String BASE_URI = "http://localhost:8080/IBDMSWebServer/webresources";
+    private static final String BASE_URI = "http://localhost:8080/IBDMSWebServer/webresources/";
 
     public FiretrucksRestClient() {
         client = javax.ws.rs.client.ClientBuilder.newClient();

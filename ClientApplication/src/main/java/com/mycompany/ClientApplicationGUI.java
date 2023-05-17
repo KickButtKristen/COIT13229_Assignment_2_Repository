@@ -102,8 +102,41 @@ public class ClientApplicationGUI {
             public void actionPerformed(ActionEvent e) {
                 // Send request to server
 
+                // Show JOption pane to input ID
+                String firetruckId = JOptionPane.showInputDialog(null, "Enter new firetruck ID: ");
+                int ftId = -1;
+
+                if (firetruckId != null && !firetruckId.isEmpty()) {
+                    try {
+                        ftId = Integer.parseInt(firetruckId);
+
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Invalid ID - please enter a number");
+                        return;
+                    }
+
+                    // check if ID existant in DB
+                    try {
+                        FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
+                        Firetrucks existingFiretrucks = firetrucksRestClient.find_JSON(Firetrucks.class, String.valueOf(firetruckId));
+
+                        if (existingFiretrucks != null) {
+                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
+                            return;
+                        }
+                    } catch (ClientErrorException ex) {
+                        if (ex.getResponse().getStatus() != 404) {
+                            JOptionPane.showMessageDialog(null, "Error checking for existing firetruck ID: " + ex.getMessage());
+                            return;
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "Firetruck ID is empty, please enter an ID.");
+                    return;
+                }
+
                 // Show JOptionPane input dialog for new firetruck name
-                String firetruckName = JOptionPane.showInputDialog(null, "Enter firetruck name: ");
+                String firetruckName = JOptionPane.showInputDialog(null, "Enter new firetruck name: ");
 
                 if (firetruckName != null && !firetruckName.isEmpty()) {
                     boolean isValid = false;
@@ -133,10 +166,10 @@ public class ClientApplicationGUI {
                         // Create string array for display to user of fire options
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
-                            fireOptions[i] = "ID: " + activeFires[i].getId() + " : POS["
-                                    + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "] : "
-                                    + "Inty: " + activeFires[i].getIntensity() + " : "
-                                    + "BR: " + activeFires[i].getBurningAreaRadius();
+                            fireOptions[i] = "ID: " + activeFires[i].getId() + " : "
+                                    + "INT-" + activeFires[i].getIntensity() + " : "
+                                    + "BR-" + activeFires[i].getBurningAreaRadius() + " : "
+                                    + "POS[" + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "]";
 
                         }
 
@@ -158,13 +191,10 @@ public class ClientApplicationGUI {
 
                             // Create new firetrucks object from input
                             Firetrucks newFiretruck = new Firetrucks();
+                            newFiretruck.setId(ftId);
                             newFiretruck.setName(firetruckName);
                             newFiretruck.setDesignatedFireId(selectedFireId);
 
-                            /**
-                             * TODO: Find out why this isnt adding it to the SQL
-                             * database - perhaps something on serverside?
-                             */
                             // send firetruck to server to insert to DB
                             firetrucksRestClient.create_JSON(newFiretruck);
 
