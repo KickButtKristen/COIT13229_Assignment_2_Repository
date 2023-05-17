@@ -106,6 +106,8 @@ public class ClientApplicationGUI {
                 String firetruckName = JOptionPane.showInputDialog(null, "Enter firetruck name: ");
 
                 if (firetruckName != null && !firetruckName.isEmpty()) {
+                    boolean isValid = false;
+
                     try {
                         FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
                         FireRestClient fireRestClient = new FireRestClient();
@@ -119,7 +121,7 @@ public class ClientApplicationGUI {
                             }
                         }
                         Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
-                        
+
                         // Sort activeFires by intensity
                         Arrays.sort(activeFires, new Comparator<Fire>() {
                             @Override
@@ -127,7 +129,7 @@ public class ClientApplicationGUI {
                                 return Integer.compare(f2.getIntensity(), f1.getIntensity());
                             }
                         });
-                        
+
                         // Create string array for display to user of fire options
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
@@ -148,37 +150,42 @@ public class ClientApplicationGUI {
                                 fireOptions,
                                 fireOptions[0]
                         );
-                        
-                        // Get the fire ID from selected fire
-                        int selectedFireId = Integer.parseInt(selectedFireOption.split(":")[1].trim());
-                        
-                        // Create new firetrucks object from input
-                        Firetrucks newFiretruck = new Firetrucks();
-                        newFiretruck.setName(firetruckName);
-                        newFiretruck.setDesignatedFireId(selectedFireId);
-                        
-                        
-                        /**
-                         * TODO: Find out why this isnt adding it to the SQL database - 
-                         * perhaps something on serverside?
-                         */
-                        // send firetruck to server to insert to DB
-                        firetrucksRestClient.create_JSON(newFiretruck);
-                        
-                        // success msg
-                        messageArea.append("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
-                        
-                        // close
-                        firetrucksRestClient.close();
-                        fireRestClient.close();
-                        
+
+                        if (selectedFireOption != null) {
+                            isValid = true;
+                            // Get the fire ID from selected fire
+                            int selectedFireId = Integer.parseInt(selectedFireOption.split(":")[1].trim());
+
+                            // Create new firetrucks object from input
+                            Firetrucks newFiretruck = new Firetrucks();
+                            newFiretruck.setName(firetruckName);
+                            newFiretruck.setDesignatedFireId(selectedFireId);
+
+                            /**
+                             * TODO: Find out why this isnt adding it to the SQL
+                             * database - perhaps something on serverside?
+                             */
+                            // send firetruck to server to insert to DB
+                            firetrucksRestClient.create_JSON(newFiretruck);
+
+                            // success msg
+                            messageArea.setText("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
+
+                            // close
+                            firetrucksRestClient.close();
+                            fireRestClient.close();
+                        }
                     } catch (ClientErrorException ex) {
                         ex.printStackTrace();
-                        messageArea.append("Error inserting firetruck: " + ex.getMessage() + "\n");
+                        messageArea.setText("Error inserting firetruck: " + ex.getMessage() + "\n");
+                    }
+
+                    if (!isValid) {
+                        messageArea.setText("Fire selection cancelled or no fire was selected\n"); // handle no fire selection
                     }
                 } else {
                     // If fire truck name is empty or null...
-                    messageArea.append("Firetruck name cannot be empty!");
+                    messageArea.setText("Firetruck name cannot be empty!\n");
                 }
             }
         });
@@ -189,7 +196,9 @@ public class ClientApplicationGUI {
          *
          */
         JButton btnGetFiretrucksReport = new JButton("Get Firetrucks Report");
+
         btnGetFiretrucksReport.addActionListener(new ActionListener() {
+
             public void actionPerformed(ActionEvent e) {
                 try {
                     FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
