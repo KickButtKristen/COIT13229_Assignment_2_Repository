@@ -114,22 +114,6 @@ public class ClientApplicationGUI {
                         JOptionPane.showMessageDialog(null, "Invalid ID - please enter a number");
                         return;
                     }
-
-                    // check if ID existant in DB
-                    try {
-                        FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
-                        Firetrucks existingFiretrucks = firetrucksRestClient.find_JSON(Firetrucks.class, String.valueOf(firetruckId));
-
-                        if (existingFiretrucks != null) {
-                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
-                            return;
-                        }
-                    } catch (ClientErrorException ex) {
-                        if (ex.getResponse().getStatus() != 404) {
-                            JOptionPane.showMessageDialog(null, "Error checking for existing firetruck ID: " + ex.getMessage());
-                            return;
-                        }
-                    }
                 } else {
                     JOptionPane.showMessageDialog(null, "Firetruck ID is empty, please enter an ID.");
                     return;
@@ -144,6 +128,24 @@ public class ClientApplicationGUI {
                     try {
                         FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
                         FireRestClient fireRestClient = new FireRestClient();
+
+                        // Check if there are any existing firetrucks in the database
+                        Firetrucks[] existingFiretrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
+                        boolean hasExistingFiretrucks = existingFiretrucks != null && existingFiretrucks.length > 0;
+
+                        // If firetrucks exists in tableand the entered ID already exists, display an error message
+                        boolean idExists = false;
+                        for (Firetrucks truck : existingFiretrucks) {
+                            if (truck.getId() == ftId) {
+                                idExists = true;
+                                break;
+                            }
+                        }
+
+                        if (hasExistingFiretrucks && idExists) {
+                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
+                            return;
+                        }
 
                         // add all fires to array then loop to add only active fires to array
                         Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
