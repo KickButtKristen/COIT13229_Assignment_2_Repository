@@ -132,10 +132,9 @@ public class ClientApplicationGUI {
                         // Check if there are any existing firetrucks in the database
                         Firetrucks[] existingFiretrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
                         boolean hasExistingFiretrucks = existingFiretrucks != null && existingFiretrucks.length > 0;
-
-
+                        
+                        
                         // check if ID exists against existing firetrucks if they are populated
-
                         boolean idExists = false;
                         if (hasExistingFiretrucks) {
                             for (Firetrucks truck : existingFiretrucks) {
@@ -160,6 +159,13 @@ public class ClientApplicationGUI {
                                 activeFiresList.add(f);
                             }
                         }
+                        
+                        // Handle no active fires
+                        if (activeFiresList.isEmpty()) {
+                            JOptionPane.showMessageDialog(null, "There are currently no active fires!");
+                            return;
+                        }
+                        
                         Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
 
                         // Sort activeFires by intensity
