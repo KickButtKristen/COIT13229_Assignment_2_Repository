@@ -31,7 +31,6 @@ public class FiretrucksFacadeREST extends AbstractFacade<Firetrucks> {
     }
 
     @POST
-    @Path("/firetrucks")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response createFiretruck(Firetrucks firetruck) {
         try {
