@@ -101,47 +101,30 @@ public class ClientApplicationGUI {
         btnSendRequest.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // Send request to server
- 
+
                 // Show JOption pane to input ID
                 String firetruckId = JOptionPane.showInputDialog(null, "Enter new firetruck ID: ");
                 int ftId = -1;
- 
+
                 if (firetruckId != null && !firetruckId.isEmpty()) {
                     try {
                         ftId = Integer.parseInt(firetruckId);
- 
+
                     } catch (NumberFormatException ex) {
                         JOptionPane.showMessageDialog(null, "Invalid ID - please enter a number");
                         return;
                     }
-
-                    // check if ID existant in DB
-                    try {
-                        FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
-                        Firetrucks existingFiretrucks = firetrucksRestClient.find_JSON(Firetrucks.class, String.valueOf(firetruckId));
- 
-                        if (existingFiretrucks != null) {
-                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
-                            return;
-                        }
-                    } catch (ClientErrorException ex) {
-                        if (ex.getResponse().getStatus() != 404) {
-                            JOptionPane.showMessageDialog(null, "Error checking for existing firetruck ID: " + ex.getMessage());
-                            return;
-                        }
-                    }
-
                 } else {
                     JOptionPane.showMessageDialog(null, "Firetruck ID is empty, please enter an ID.");
                     return;
                 }
- 
+
                 // Show JOptionPane input dialog for new firetruck name
                 String firetruckName = JOptionPane.showInputDialog(null, "Enter new firetruck name: ");
- 
+
                 if (firetruckName != null && !firetruckName.isEmpty()) {
                     boolean isValid = false;
- 
+
                     try {
                         FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
                         FireRestClient fireRestClient = new FireRestClient();
@@ -150,20 +133,21 @@ public class ClientApplicationGUI {
                         Firetrucks[] existingFiretrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
                         boolean hasExistingFiretrucks = existingFiretrucks != null && existingFiretrucks.length > 0;
 
-                        // If firetrucks exists in tableand the entered ID already exists, display an error message
+                        // If there are existing firetrucks, check if the entered ID already exists
                         boolean idExists = false;
-                        for (Firetrucks truck : existingFiretrucks) {
-                            if (truck.getId() == ftId) {
-                                idExists = true;
-                                break;
+                        if (hasExistingFiretrucks) {
+                            for (Firetrucks truck : existingFiretrucks) {
+                                if (truck.getId() == ftId) {
+                                    idExists = true;
+                                    break;
+                                }
                             }
                         }
 
-                        if (hasExistingFiretrucks && idExists) {
+                        if (idExists) {
                             JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
                             return;
                         }
-
 
                         // add all fires to array then loop to add only active fires to array
                         Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
@@ -174,7 +158,7 @@ public class ClientApplicationGUI {
                             }
                         }
                         Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
- 
+
                         // Sort activeFires by intensity
                         Arrays.sort(activeFires, new Comparator<Fire>() {
                             @Override
@@ -182,7 +166,7 @@ public class ClientApplicationGUI {
                                 return Integer.compare(f2.getIntensity(), f1.getIntensity());
                             }
                         });
- 
+
                         // Create string array for display to user of fire options
                         String[] fireOptions = new String[activeFires.length];
                         for (int i = 0; i < activeFires.length; i++) {
@@ -190,9 +174,9 @@ public class ClientApplicationGUI {
                                     + "INT-" + activeFires[i].getIntensity() + " : "
                                     + "BR-" + activeFires[i].getBurningAreaRadius() + " : "
                                     + "POS[" + activeFires[i].getXpos() + ", " + activeFires[i].getYpos() + "]";
- 
+
                         }
- 
+
                         // Display JOptionPane for fire options and get the fire ID of selection
                         String selectedFireOption = (String) JOptionPane.showInputDialog(
                                 null,
@@ -203,24 +187,24 @@ public class ClientApplicationGUI {
                                 fireOptions,
                                 fireOptions[0]
                         );
- 
+
                         if (selectedFireOption != null) {
                             isValid = true;
                             // Get the fire ID from selected fire
                             int selectedFireId = Integer.parseInt(selectedFireOption.split(":")[1].trim());
- 
+
                             // Create new firetrucks object from input
                             Firetrucks newFiretruck = new Firetrucks();
                             newFiretruck.setId(ftId);
                             newFiretruck.setName(firetruckName);
                             newFiretruck.setDesignatedFireId(selectedFireId);
- 
+
                             // send firetruck to server to insert to DB
                             firetrucksRestClient.create_JSON(newFiretruck);
- 
+
                             // success msg
                             messageArea.setText("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
- 
+
                             // close
                             firetrucksRestClient.close();
                             fireRestClient.close();
@@ -229,7 +213,7 @@ public class ClientApplicationGUI {
                         ex.printStackTrace();
                         messageArea.setText("Error inserting firetruck: " + ex.getMessage() + "\n");
                     }
- 
+
                     if (!isValid) {
                         messageArea.setText("Fire selection cancelled or no fire was selected\n"); // handle no fire selection
                     }
@@ -282,7 +266,7 @@ public class ClientApplicationGUI {
                     Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
                     StringBuilder reportBuilder = new StringBuilder();
                     for (Fire fire : fires) {
-                        if(fire.getIsActive() == 1) {
+                        if (fire.getIsActive() == 1) {
                             reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
                                     .append("Active: Yes\n")
                                     .append("Intensity: ").append(fire.getIntensity()).append("\n")
@@ -313,7 +297,7 @@ public class ClientApplicationGUI {
                     Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
                     StringBuilder reportBuilder = new StringBuilder();
                     for (Fire fire : fires) {
-                        if(fire.getIsActive() == 0) {
+                        if (fire.getIsActive() == 0) {
                             reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
                                     .append("Active: No\n")
                                     .append("Intensity: ").append(fire.getIntensity()).append("\n")
