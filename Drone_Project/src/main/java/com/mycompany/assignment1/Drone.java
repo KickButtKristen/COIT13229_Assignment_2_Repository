@@ -73,6 +73,7 @@ public class Drone extends Thread {
         System.out.println("Enter Drone Name: ");
         name = scanner.nextLine();
         
+ 
         // Adds drone details to a new DroneDetails object named drone
         drone = new DroneDetails(id, name, xpos, ypos);
         
