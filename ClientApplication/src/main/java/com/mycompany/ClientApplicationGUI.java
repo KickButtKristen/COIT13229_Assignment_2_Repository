@@ -114,6 +114,22 @@ public class ClientApplicationGUI {
                         JOptionPane.showMessageDialog(null, "Invalid ID - please enter a number");
                         return;
                     }
+
+                    // check if ID existant in DB
+                    try {
+                        FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
+                        Firetrucks existingFiretrucks = firetrucksRestClient.find_JSON(Firetrucks.class, String.valueOf(firetruckId));
+
+                        if (existingFiretrucks != null) {
+                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
+                            return;
+                        }
+                    } catch (ClientErrorException ex) {
+                        if (ex.getResponse().getStatus() != 404) {
+                            JOptionPane.showMessageDialog(null, "Error checking for existing firetruck ID: " + ex.getMessage());
+                            return;
+                        }
+                    }
                 } else {
                     JOptionPane.showMessageDialog(null, "Firetruck ID is empty, please enter an ID.");
                     return;
@@ -129,28 +145,6 @@ public class ClientApplicationGUI {
                         FiretrucksRestClient firetrucksRestClient = new FiretrucksRestClient();
                         FireRestClient fireRestClient = new FireRestClient();
 
-                        // Check if there are any existing firetrucks in the database
-                        Firetrucks[] existingFiretrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
-                        boolean hasExistingFiretrucks = existingFiretrucks != null && existingFiretrucks.length > 0;
-                        
-                        
-                        // check if ID exists against existing firetrucks if they are populated
-                        boolean idExists = false;
-                        if (hasExistingFiretrucks) {
-                            for (Firetrucks truck : existingFiretrucks) {
-                                if (truck.getId() == ftId) {
-                                    idExists = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // handle dupe id
-                        if (idExists) {
-                            JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
-                            return;
-                        }
-
                         // add all fires to array then loop to add only active fires to array
                         Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
                         List<Fire> activeFiresList = new ArrayList<>();
@@ -159,13 +153,6 @@ public class ClientApplicationGUI {
                                 activeFiresList.add(f);
                             }
                         }
-                        
-                        // Handle no active fires
-                        if (activeFiresList.isEmpty()) {
-                            JOptionPane.showMessageDialog(null, "There are currently no active fires!");
-                            return;
-                        }
-                        
                         Fire[] activeFires = activeFiresList.toArray(new Fire[activeFiresList.size()]);
 
                         // Sort activeFires by intensity
@@ -270,18 +257,17 @@ public class ClientApplicationGUI {
         JButton btnGetReport = new JButton("Get Fire Report");
         btnGetReport.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                // Get fire report from server
                 try {
                     FireRestClient fireRestClient = new FireRestClient();
                     Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
                     StringBuilder reportBuilder = new StringBuilder();
                     for (Fire fire : fires) {
-                        if (fire.getIsActive() == 1) {
-                            reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
-                                    .append("Active: Yes\n")
-                                    .append("Intensity: ").append(fire.getIntensity()).append("\n")
-                                    .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
-                                    .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
-                        }
+                        reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
+                                .append("Active: ").append(fire.getIsActive() == 1 ? "Yes" : "No").append("\n")
+                                .append("Intensity: ").append(fire.getIntensity()).append("\n")
+                                .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
+                                .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
                     }
                     reportArea.setText(reportBuilder.toString());
                     fireRestClient.close();
@@ -301,25 +287,8 @@ public class ClientApplicationGUI {
         JButton btnGetPreviousReports = new JButton("Get Previous Fire Reports");
         btnGetPreviousReports.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                try {
-                    FireRestClient fireRestClient = new FireRestClient();
-                    Fire[] fires = fireRestClient.findAll_JSON(Fire[].class);
-                    StringBuilder reportBuilder = new StringBuilder();
-                    for (Fire fire : fires) {
-                        if (fire.getIsActive() == 0) {
-                            reportBuilder.append("Fire ID: ").append(fire.getId()).append("\n")
-                                    .append("Active: No\n")
-                                    .append("Intensity: ").append(fire.getIntensity()).append("\n")
-                                    .append("Burning Area Radius: ").append(fire.getBurningAreaRadius()).append("\n")
-                                    .append("Position: (").append(fire.getXpos()).append(", ").append(fire.getYpos()).append(")\n\n");
-                        }
-                    }
-                    reportArea.setText(reportBuilder.toString());
-                    fireRestClient.close();
-                } catch (ClientErrorException exception) {
-                    exception.printStackTrace();
-                    messageArea.append("Error getting previous fire report: " + exception.getMessage() + "\n");
-                }
+                // Get previous fire reports from server
+                //TODO add some logic to get reports of fires with isActive as 0
             }
         });
         buttonPanel.add(btnGetPreviousReports);
