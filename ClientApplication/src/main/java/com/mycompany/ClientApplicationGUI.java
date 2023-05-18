@@ -133,7 +133,9 @@ public class ClientApplicationGUI {
                         Firetrucks[] existingFiretrucks = firetrucksRestClient.findAll_JSON(Firetrucks[].class);
                         boolean hasExistingFiretrucks = existingFiretrucks != null && existingFiretrucks.length > 0;
 
-                        // If there are existing firetrucks, check if the entered ID already exists
+
+                        // check if ID exists against existing firetrucks if they are populated
+
                         boolean idExists = false;
                         if (hasExistingFiretrucks) {
                             for (Firetrucks truck : existingFiretrucks) {
@@ -144,6 +146,7 @@ public class ClientApplicationGUI {
                             }
                         }
 
+                        // handle dupe id
                         if (idExists) {
                             JOptionPane.showMessageDialog(null, "Firetruck ID already exists, please enter a different ID");
                             return;
