@@ -536,7 +536,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         try (Connection con = connectToDatabase()) {
             if (con != null) {
                 Statement stmt = con.createStatement();
-                String query = "SELECT id, name, designatedFireId FROM firetrucks";
+                String query = "SELECT id, name, designatedFireId FROM firetrucks WHERE designatedFireId != 0";
                 ResultSet rs = stmt.executeQuery(query);
 
                 while (rs.next()) {
@@ -558,6 +558,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
         return fireTrucks;
     }
 
+    
 
     
     static void loadDroneData() {
