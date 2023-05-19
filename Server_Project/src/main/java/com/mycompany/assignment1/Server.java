@@ -334,18 +334,18 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
     
     private static Connection connectToDatabase() {
-        Connection connection = null;
+        Connection conn = null;
         String url = "jdbc:mysql://localhost:3306/ibdms_server?zeroDateTimeBehavior=CONVERT_TO_NULL";
         String username = "test";
         String password = "test";
 
         try {
-            connection = DriverManager.getConnection(url, username, password);
+            conn = DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
             System.out.println("Error connecting to the database: " + e.getMessage());
         }
 
-        return connection;
+        return conn;
     }
     
     static boolean ifRecall() {
@@ -396,6 +396,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
             pstmt.executeUpdate();
 
             tempFire.setId(id);
+            pstmt.setBoolean(2, true);
             loadFireData();
 
         } catch (SQLIntegrityConstraintViolationException e) {
