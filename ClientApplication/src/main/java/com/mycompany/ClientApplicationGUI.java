@@ -213,7 +213,36 @@ public class ClientApplicationGUI {
 
                             // success msg
                             messageArea.setText("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
-
+                            
+                            // Wait for a while 
+                            try {
+                                Thread.sleep(5100);
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+                            
+                            // Find fire in list and delete
+                            Fire assignedFire = null;
+                            for (Fire fire : activeFires) {
+                                if (fire.getId() == selectedFireId) {
+                                    assignedFire = fire;
+                                    break;
+                                }
+                            }
+                            if (assignedFire != null) {
+                                // Set assigned fireId of firetruck to 0 and send to server
+                                newFiretruck.setDesignatedFireId(0);
+                                firetrucksRestClient.edit_JSON(newFiretruck, String.valueOf(newFiretruck.getId()));
+                                
+                                // Set isActive of fire to 0 and send to server
+                                assignedFire.setIsActive(0);
+                                fireRestClient.edit_JSON(assignedFire, String.valueOf(assignedFire.getId()));
+                                
+                                // messageArea append "fire has been extinguished
+                                messageArea.append("Fire has been extinguished by Firetruck ID " + newFiretruck.getId() + " : " + newFiretruck.getName() + ". Setting designated fire ID to 0.");
+                            }
+                            
+                            
                             // close
                             firetrucksRestClient.close();
                             fireRestClient.close();
