@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
+
 /**
  *
  * @author diamo
@@ -23,34 +24,34 @@ public class Drone extends Thread {
     static boolean recallStatus = false; // If a recall has been initiated
     static int movements = 1; // How many movements have been done since direction change
     static boolean isManualMove = false;
-    
+
     // Drone cooordinates
     static int xpos;
     static int ypos;
-    
+
     public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
         Random rand = new Random();
-        
+
         // Socket Initialisation
         Socket s = null;
-        
+
         // Host Name of Server
         String hostName = "localhost";
-        
+
         // Messages received and sent to the server.
         String serverMessage = "";
         String message = "";
-        
+
         // Used for movements
         int direction = 0;
-        
+
         // Drone ID
         int id = 0;
-        
+
         // Drone Name
         String name;
-        
+
         // Asks user to input ID, reads input, if the ID can not be parsed into an integer, displays error and allows re-input
         while (true) {
             System.out.println("Enter Drone ID: ");
@@ -68,37 +69,71 @@ public class Drone extends Thread {
                 System.out.println("ID must be numeric only."); // Error message if parseInt fails
             }
         }
-        
+
         // Asks user to input name, reads input and sets it to the name variable
         System.out.println("Enter Drone Name: ");
         name = scanner.nextLine();
-        
+
         // Adds drone details to a new DroneDetails object named drone
         drone = new DroneDetails(id, name, xpos, ypos);
-        
+
+        ObjectInputStream in = null;
+        ObjectOutputStream out = null;
+
         // Make first connection here
         try {
             int serverPort = 8888;
-            
             s = new Socket(hostName, serverPort);
-            
-            ObjectInputStream in = null;
-            ObjectOutputStream out = null;
-			
+
             out = new ObjectOutputStream(s.getOutputStream());
             in = new ObjectInputStream(s.getInputStream());
-            
+
             // Sends drone object to server and confirms
-            out.writeObject(drone);
-            serverMessage = (String)in.readObject();
+            out.writeObject(drone); // SEND drone to server
+
+            // Get existing drone position
+            serverMessage = (String) in.readObject(); // RECEIVE drone details msg from DB/Server
+
+            // assign name, xpos, and ypos
+            String receivedName = "droneName";
+            String receivedXpos = "0";
+            String receivedYpos = "0";
+            int convertXpos = 0;
+            int convertYpos = 0;
+
+            if (serverMessage.equals("existing")) {
+                // if drone info received from DB
+                receivedName = (String) in.readObject();
+                receivedXpos = (String) in.readObject();
+                receivedYpos = (String) in.readObject();
+                // convert relevant details from strings
+                convertXpos = Integer.parseInt(receivedXpos);
+                convertYpos = Integer.parseInt(receivedYpos);
+
+                System.out.println("Server: Drone ID exists in database - initialising this drone...");
+            } else if (serverMessage.equals("new")) {
+                // if drone doesnt exist use client input
+                receivedName = drone.getName();
+                convertXpos = drone.getXpos();
+                convertYpos = drone.getYpos();
+                System.out.println("Server: Initialising new drone...");
+            } else {
+                System.out.println("Server unexpectedly received message " + serverMessage);
+            }
+
+            drone.setName(receivedName);
+            drone.setXpos(convertXpos);
+            drone.setYpos(convertYpos);
+
+            serverMessage = (String) in.readObject();    // RECEIVE "confirmed"
             System.out.println("Server: Confirmed Drone Data");
-            
+
             // Writes that there's 0 fires right now to implement and receives confirmation
             out.writeObject(0);
-            serverMessage = (String)in.readObject();
+            serverMessage = (String) in.readObject();
             System.out.println("Server: Confirmed Number of Fires Data");
-            
-            serverMessage = (String)in.readObject();
+
+            serverMessage = (String) in.readObject();
             // Checks if the message was a recall, acts accordingly
             if (serverMessage.equals("recall")) {
                 System.out.println("Recall Initiated");
@@ -107,112 +142,134 @@ public class Drone extends Thread {
                 out.writeObject(message);
                 // Closes connection
                 s.close();
-                
+
                 // Exits program immediately
                 System.exit(0);
-            
+
             } else if (serverMessage.equals("move")) {
                 // If the server asks for the drone to move, receive movement locations, send confirmations between
                 message = "Move confirmed";
                 out.writeObject(message);
-                int newXpos = (Integer)in.readObject();
+                int newXpos = (Integer) in.readObject();
                 out.writeObject(message);
-                int newYpos = (Integer)in.readObject();
+                int newYpos = (Integer) in.readObject();
                 out.writeObject(message);
-                
+
                 // Sets new drone coordinates
                 xpos = newXpos;
                 ypos = newYpos;
-            // If the server confirms the input, just confirms it in commandline
+                // If the server confirms the input, just confirms it in commandline
             } else if (serverMessage.equals("confirmed")) {
                 System.out.println("Server: Confirmed Everything\n");
             }
-            
-            
-            
-        } catch (UnknownHostException e){System.out.println("Socket:"+e.getMessage());
-	} catch (EOFException e){System.out.println("EOF:"+e.getMessage());
-	} catch (IOException e){System.out.println("readline:"+e.getMessage());
-        } catch(ClassNotFoundException ex){ ex.printStackTrace();
-	} finally {if(s!=null) try {s.close();}catch (IOException e){System.out.println("close:"+e.getMessage());}}
-        
+
+        } catch (UnknownHostException e) {
+            System.out.println("Socket:" + e.getMessage());
+        } catch (EOFException e) {
+            System.out.println("EOF:" + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("readline:" + e.getMessage());
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (s != null) try {
+                s.close();
+            } catch (IOException e) {
+                System.out.println("close:" + e.getMessage());
+            }
+            if (out != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         // Create Thread
         Drone thread = new Drone();
         thread.start();
-        
+
         // Facilitates Drone movements
         while (true) {
-        // If drone needs to be recalled, stops movement by breaking loop
-        if (recallStatus) {
-            break;
-        }
-
-        // Sleeps thread for 2 seconds
-        Thread.sleep(2000);
-
-        // The drone will move in the same direction for 10 movements before changing direction
-        if (movements == 1) {
-            // Chooses a direction to start moving in
-            direction = rand.nextInt(4);
-        } else if (movements == 10) {
-            // Will Reset movements back to 0
-            movements = 0;
-        }
-
-        // Moves drone randomly in direction between 0 and 3 coordinates only if a manual move has not been made
-        if (!isManualMove) {
-            switch (direction) {
-                case 0:
-                    xpos += rand.nextInt(4);
-                    ypos += rand.nextInt(4);
-                    break;
-                case 1:
-                    xpos += rand.nextInt(4);
-                    ypos -= rand.nextInt(4);
-                    break;
-                case 2: 
-                    xpos -= rand.nextInt(4);
-                    ypos += rand.nextInt(4);
-                    break;
-                case 3:
-                    xpos -= rand.nextInt(4);
-                    ypos -= rand.nextInt(4);
-                    break;
+            // If drone needs to be recalled, stops movement by breaking loop
+            if (recallStatus) {
+                break;
             }
-        } else {
-            isManualMove = false; // reset the flag
+
+            // Sleeps thread for 2 seconds
+            Thread.sleep(2000);
+
+            // The drone will move in the same direction for 10 movements before changing direction
+            if (movements == 1) {
+                // Chooses a direction to start moving in
+                direction = rand.nextInt(4);
+            } else if (movements == 10) {
+                // Will Reset movements back to 0
+                movements = 0;
+            }
+
+            // Moves drone randomly in direction between 0 and 3 coordinates only if a manual move has not been made
+            if (!isManualMove) {
+                switch (direction) {
+                    case 0:
+                        xpos += rand.nextInt(4);
+                        ypos += rand.nextInt(4);
+                        break;
+                    case 1:
+                        xpos += rand.nextInt(4);
+                        ypos -= rand.nextInt(4);
+                        break;
+                    case 2:
+                        xpos -= rand.nextInt(4);
+                        ypos += rand.nextInt(4);
+                        break;
+                    case 3:
+                        xpos -= rand.nextInt(4);
+                        ypos -= rand.nextInt(4);
+                        break;
+                }
+            } else {
+                isManualMove = false; // reset the flag
+            }
+
+            // Increases movements counter
+            movements++;
+
+            // Sets drone object's positions to new ones
+            drone.setXpos(xpos);
+            drone.setYpos(ypos);
+
+            // Makes random number up to 100, if the number is 1 reports that there's a fire at the position
+            int fireRand = rand.nextInt(100);
+            if (fireRand == 1) {
+                int intensity = rand.nextInt(9) + 1;
+                System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
+
+                // Always set isActive to true for new fires
+                boolean isActive = true;
+
+                // Randomly generate the burning area radius
+                double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
+
+                FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
+                fires.add(fire);
+            }
         }
 
-        // Increases movements counter
-        movements++;
-
-        // Sets drone object's positions to new ones
-        drone.setXpos(xpos);
-        drone.setYpos(ypos);
-
-        // Makes random number up to 100, if the number is 1 reports that there's a fire at the position
-        int fireRand = rand.nextInt(100);
-        if (fireRand == 1) {
-            int intensity = rand.nextInt(9) + 1;
-            System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
-
-            // Always set isActive to true for new fires
-            boolean isActive = true;
-
-            // Randomly generate the burning area radius
-            double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
-
-            FireDetails fire = new FireDetails(id, isActive, intensity, burningAreaRadius, xpos, ypos);
-            fires.add(fire);
-        }
     }
-            
-    }
-    
+
     DroneDetails returnDrone() {
         return drone;
     }
-    
+
     public void moveDrone(int newXpos, int newYpos) {
         // This function is called if the drone is moved
         // Resets movement so a new direction will be chosen and updates coordinates based on move
@@ -221,98 +278,89 @@ public class Drone extends Thread {
         ypos = newYpos;
         isManualMove = true;
     }
-    
-    
+
     @Override
     public void run() {
         // Connect to server every 10 seconds
-        
-        Socket s = null;
         String hostName = "localhost";
-        String serverMessage = "";
-        String message = "";
+        int serverPort = 8888;
+        String serverMessage;
+        String message;
         DroneDetails drone;
-        
+
         while (true) {
-            try {
+            try ( Socket s = new Socket(hostName, serverPort);  ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());  ObjectInputStream in = new ObjectInputStream(s.getInputStream())) {
+
                 // Sleeps thread for 10 seconds before executing further code
                 Thread.sleep(10000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Drone.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            // Connects to Server Here
-            try {
-            int serverPort = 8888;
-            
-            s = new Socket(hostName, serverPort);
-            
-            ObjectInputStream in = null;
-            ObjectOutputStream out = null;
-			
-            out = new ObjectOutputStream(s.getOutputStream());
-            in = new ObjectInputStream(s.getInputStream());
-            
-            // Gets drone object from returnDrone function then writes it to server and confirms
-            drone = returnDrone();
-            out.writeObject(drone);
-            serverMessage = (String)in.readObject();
-            System.out.println("Server: Confirmed Drone Data");
-            
-            // Sends number of fires
-            Integer numFires = Drone.fires.size();
-            out.writeObject(numFires);
-            serverMessage = (String)in.readObject();
-            System.out.println("Server: Confirmed Number of Fires Data");
-            
-            // If there's fires it'll loop sending the fire objects one at a time
-            // Waits for confirmation message to send next fire
-            if (numFires > 0) {
-                for (FireDetails p : Drone.fires) {
-                    out.writeObject(p);
-                    serverMessage = (String)in.readObject();
+
+                // Gets drone object from returnDrone function then writes it to server and confirms
+                drone = returnDrone();
+                out.writeObject(drone);
+                serverMessage = (String) in.readObject();
+                System.out.println("Server: Confirmed Drone Data");
+
+                // Sends number of fires
+                Integer numFires = Drone.fires.size();
+                out.writeObject(numFires);
+                serverMessage = (String) in.readObject();
+                System.out.println("Server: Confirmed Number of Fires Data");
+
+                // If there are fires, send each fire object one at a time
+                // Wait for confirmation message to send the next fire
+                if (numFires > 0) {
+                    for (FireDetails p : Drone.fires) {
+                        out.writeObject(p);
+                        serverMessage = (String) in.readObject();
+                    }
+                    // Clears arraylist so fires aren't resent
+                    Drone.fires.clear();
                 }
-                // Clears arraylist so fires aren't resent
-                Drone.fires.clear();
-            }
-            
-            // Reads server String response, says if recall or confirmed
-            serverMessage = (String)in.readObject();
-            
-            // Checks if the message was a recall, acts accordingly
-            if (serverMessage.equals("recall")) {
-                System.out.println("Server: Recall Initiated");
-                // Sends recall confirmation to server
-                message = "Recall Confirmed";
-                out.writeObject(message);
-                Drone.recallStatus = true;
-                
-                // Closes connection
+
+                // Reads server String response, says if recall or confirmed
+                serverMessage = (String) in.readObject();
+
+                // Checks if the message was a recall, acts accordingly
+                if (serverMessage.equals("recall")) {
+                    System.out.println("Server: Recall Initiated");
+                    // Sends recall confirmation to server
+                    message = "Recall Confirmed";
+                    out.writeObject(message);
+                    Drone.recallStatus = true;
+
+                    // Closes connection
+                    s.close();
+                    break;
+
+                } else if (serverMessage.equals("move")) {
+                    // If the server asks for the drone to move, receive movement locations, send confirmations between
+                    message = "Move confirmed";
+                    out.writeObject(message);
+                    int newXpos = (Integer) in.readObject();
+                    out.writeObject(message);
+                    int newYpos = (Integer) in.readObject();
+                    out.writeObject(message);
+                    // Calls function to move drone to new location
+                    moveDrone(newXpos, newYpos);
+                } else if (serverMessage.equals("confirmed")) {
+                    // If the server confirms the input, just confirms it in commandline
+                    System.out.println("Server: Confirmed Everything\n");
+                }
+
+                // Closes socket
                 s.close();
-                break;
-                
-            } else if (serverMessage.equals("move")) {
-                // If the server asks for the drone to move, receive movement locations, send confirmations between
-                message = "Move confirmed";
-                out.writeObject(message);
-                int newXpos = (Integer)in.readObject();
-                out.writeObject(message);
-                int newYpos = (Integer)in.readObject();
-                out.writeObject(message);
-                // Calls function to move drone to new location
-                moveDrone(newXpos, newYpos);
-            } else if (serverMessage.equals("confirmed")) {
-                // If the server confirms the input, just confirms it in commandline
-                System.out.println("Server: Confirmed Everything\n");
+
+            } catch (UnknownHostException e) {
+                System.out.println("Socket:" + e.getMessage());
+            } catch (EOFException e) {
+                System.out.println("EOF:" + e.getMessage());
+            } catch (IOException e) {
+                System.out.println("readline:" + e.getMessage());
+            } catch (ClassNotFoundException ex) {
+                ex.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            
-            // Closes socket
-            s.close();
-            
-            } catch (UnknownHostException e){System.out.println("Socket:"+e.getMessage());
-            } catch (EOFException e){System.out.println("EOF:"+e.getMessage());
-            } catch (IOException e){System.out.println("readline:"+e.getMessage());
-            } catch(ClassNotFoundException ex){ ex.printStackTrace();
-            } finally {if(s!=null) try {s.close();}catch (IOException e){System.out.println("close:"+e.getMessage());}}
         }
-    } 
+    }
 }
