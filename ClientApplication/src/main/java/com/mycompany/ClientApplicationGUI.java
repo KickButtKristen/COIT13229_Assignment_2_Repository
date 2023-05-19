@@ -214,7 +214,6 @@ public class ClientApplicationGUI {
                             // success msg
                             messageArea.setText("Firetruck successfully inserted to DB and assigned to fire id " + selectedFireId + "\n");
                             
-                            //TODO: have the firetruck extinguish the fire
                             // Wait for a while 
                             try {
                                 Thread.sleep(5100);
@@ -243,8 +242,6 @@ public class ClientApplicationGUI {
                                 messageArea.append("Fire has been extinguished by Firetruck ID " + newFiretruck.getId() + " : " + newFiretruck.getName() + ". Setting designated fire ID to 0.");
                             }
                             
-                            //caveats : map painting; firetruck paintd to fire's position during wait time
-                            //        :
                             
                             // close
                             firetrucksRestClient.close();
