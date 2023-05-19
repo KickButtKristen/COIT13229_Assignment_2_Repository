@@ -196,8 +196,8 @@ public class Drone extends Thread {
             int intensity = rand.nextInt(9) + 1;
             System.out.println("Fire with Intensity " + intensity + " spotted at " + xpos + ", " + ypos);
 
-            // Randomly generate if the fire is active
-            boolean isActive = rand.nextBoolean();
+            // Always set isActive to true for new fires
+            boolean isActive = true;
 
             // Randomly generate the burning area radius
             double burningAreaRadius = 1 + rand.nextDouble() * 9; // Generates a random number between 1 and 10
