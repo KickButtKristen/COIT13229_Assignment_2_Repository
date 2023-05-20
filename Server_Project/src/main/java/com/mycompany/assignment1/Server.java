@@ -53,6 +53,16 @@ public class Server extends JFrame implements ActionListener, Runnable {
     // Hash Maps to store positions of drones that need to be moved
     static HashMap<Integer, Integer> newXPositions = new HashMap<>();
     static HashMap<Integer, Integer> newYPositions = new HashMap<>();
+    private static final Object ADD_DRONE_LOCK = new Object();
+    private static final Object ADD_FIRE_LOCK = new Object();
+    private static final Object ADD_FIRE_TRUCK_LOCK = new Object();
+    private static final Object REMOVE_FIRE_TRUCK_LOCK = new Object();
+    private static final Object DELETE_FIRE_LOCK = new Object();
+    private static final Object UPDATE_FIRE_LOCK = new Object();
+    private static final Object SEND_FIRETRUCK_LOCK = new Object();
+    
+            
+            
     
     public class MapPanel extends JPanel {
 
@@ -355,6 +365,7 @@ public class Server extends JFrame implements ActionListener, Runnable {
     
     //Method to Add a new drone into the database if it is not already existing (compared by  Id of the drone)
     static void addDrone(DroneDetails tempDrone) {
+        synchronized (ADD_DRONE_LOCK) {
         // Add your code to connect to the database and insert or update drone information
         String insertDrone = "INSERT INTO drone (id, name, xpos, ypos) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, xpos = ?, ypos = ?";
         try (Connection conn = connectToDatabase();
@@ -371,68 +382,76 @@ public class Server extends JFrame implements ActionListener, Runnable {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        }
     }
     
     //Method to Add a new fire report into the fire table if it is not already existing (compared by Id of the fire)
     static void addFire(FireDetails tempFire) {
-        String insertFire = "INSERT IGNORE INTO fire (id, isActive, intensity, burningAreaRadius, xpos, ypos) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = connectToDatabase();
-             PreparedStatement pstmt = conn.prepareStatement(insertFire)) {
+        synchronized (ADD_FIRE_LOCK) {
+            String insertFire = "INSERT IGNORE INTO fire (id, isActive, intensity, burningAreaRadius, xpos, ypos) VALUES (?, ?, ?, ?, ?, ?)";
+            try (Connection conn = connectToDatabase();
+                 PreparedStatement pstmt = conn.prepareStatement(insertFire)) {
 
-            int id = tempFire.getId();
+                int id = tempFire.getId();
 
-            // Check if a fire with the same ID already exists in the database
-            if (fireExists(id)) {
-                id = generateUniqueFireId();  // Generate a new unique ID for the fire
+                // Check if a fire with the same ID already exists in the database
+                if (fireExists(id)) {
+                    id = generateUniqueFireId();  // Generate a new unique ID for the fire
+                }
+
+                pstmt.setInt(1, id);
+                pstmt.setBoolean(2, tempFire.isActive());
+                pstmt.setInt(3, tempFire.getIntensity());
+                pstmt.setDouble(4, tempFire.getBurningAreaRadius());
+                pstmt.setInt(5, tempFire.getXpos());
+                pstmt.setInt(6, tempFire.getYpos());
+
+                pstmt.executeUpdate();
+
+                tempFire.setId(id);
+                pstmt.setBoolean(2, true);
+                loadFireData();
+
+            } catch (SQLIntegrityConstraintViolationException e) {
+                outputLog("Fire " + tempFire.getId() + " already exists in the database.");
+            } catch (SQLException e) {
+                outputLog("Error adding fire to the database: " + e.getMessage());
             }
-
-            pstmt.setInt(1, id);
-            pstmt.setBoolean(2, tempFire.isActive());
-            pstmt.setInt(3, tempFire.getIntensity());
-            pstmt.setDouble(4, tempFire.getBurningAreaRadius());
-            pstmt.setInt(5, tempFire.getXpos());
-            pstmt.setInt(6, tempFire.getYpos());
-
-            pstmt.executeUpdate();
-
-            tempFire.setId(id);
-            pstmt.setBoolean(2, true);
-            loadFireData();
-
-        } catch (SQLIntegrityConstraintViolationException e) {
-            outputLog("Fire " + tempFire.getId() + " already exists in the database.");
-        } catch (SQLException e) {
-            outputLog("Error adding fire to the database: " + e.getMessage());
         }
     }
     
     //Method to add a new fire truck response to the firetrucks table in the database (Compared by firetruck Id)
     static void addFireTruck(FiretruckDetails fireTruck) {
-        String insertFireTruck = "INSERT INTO firetrucks (id, name, designatedFireId) VALUES (?, ?, ?)";
-        try (Connection conn = connectToDatabase();
-            PreparedStatement pstmt = conn.prepareStatement(insertFireTruck)) {
+        synchronized (ADD_FIRE_TRUCK_LOCK) {
+            String insertFireTruck = "INSERT INTO firetrucks (id, name, designatedFireId) VALUES (?, ?, ?)";
+            try (Connection conn = connectToDatabase();
+                PreparedStatement pstmt = conn.prepareStatement(insertFireTruck)) {
 
-            pstmt.setInt(1, fireTruck.getId());
-            pstmt.setString(2, fireTruck.getName());
-            pstmt.setInt(3, fireTruck.getDesignatedFireId());
+                pstmt.setInt(1, fireTruck.getId());
+                pstmt.setString(2, fireTruck.getName());
+                pstmt.setInt(3, fireTruck.getDesignatedFireId());
 
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            outputLog("Error adding fire truck to the database: " + e.getMessage());
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                outputLog("Error adding fire truck to the database: " + e.getMessage());
+            }
         }
     }
     
     static void removeFireTruckFromDatabase(FiretruckDetails fireTruck) {
-        String deleteFireTruck = "DELETE FROM firetrucks WHERE id = ?";
-        try (Connection conn = connectToDatabase();
-             PreparedStatement pstmt = conn.prepareStatement(deleteFireTruck)) {
+        synchronized (REMOVE_FIRE_TRUCK_LOCK) {
+            String deleteFireTruck = "DELETE FROM firetrucks WHERE id = ?";
+            try (Connection conn = connectToDatabase();
+                 PreparedStatement pstmt = conn.prepareStatement(deleteFireTruck)) {
 
-            pstmt.setInt(1, fireTruck.getId());
+                pstmt.setInt(1, fireTruck.getId());
 
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            outputLog("Error removing fire truck from the database: " + e.getMessage());
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                outputLog("Error removing fire truck from the database: " + e.getMessage());
+            }
         }
+        
     }
     
     
@@ -561,29 +580,32 @@ public class Server extends JFrame implements ActionListener, Runnable {
     
 
     
-    static void loadDroneData() {
-        String query = "SELECT * FROM drone";
+     private static final Object LOAD_DRONE_DATA_LOCK = new Object();
+    
+        static void loadDroneData() {
+            synchronized (LOAD_DRONE_DATA_LOCK) {
+                String query = "SELECT * FROM drone";
+                try (Connection connection = connectToDatabase();
+                     Statement statement = connection.createStatement();
+                     ResultSet resultSet = statement.executeQuery(query)) {
 
-        try (Connection connection = connectToDatabase();
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery(query)) {
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String name = resultSet.getString("name");
+                        int xpos = resultSet.getInt("xpos");
+                        int ypos = resultSet.getInt("ypos");
 
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                int xpos = resultSet.getInt("xpos");
-                int ypos = resultSet.getInt("ypos");
+                        DroneDetails drone = new DroneDetails(id, name, xpos, ypos);
+                        drones.add(drone);
+                    }
 
-                DroneDetails drone = new DroneDetails(id, name, xpos, ypos);
-                drones.add(drone);
+                    outputLog(drones.size() + " drones loaded.");
+
+                } catch (SQLException e) {
+                    System.out.println("Error loading drone data: " + e.getMessage());
+                }
             }
-
-            outputLog(drones.size() + " drones loaded.");
-
-        } catch (SQLException e) {
-            System.out.println("Error loading drone data: " + e.getMessage());
         }
-    }
     
     static void loadFireData() {
         String query = "SELECT * FROM fire";
@@ -644,21 +666,25 @@ public class Server extends JFrame implements ActionListener, Runnable {
     }
     
     private void updateFireIsActive(int fireId, boolean isActive) {
-        try (Connection con = connectToDatabase()) {
-            if (con != null) {
-                String query = "UPDATE fire SET isActive = ? WHERE id = ?";
-                PreparedStatement pstmt = con.prepareStatement(query);
-                pstmt.setBoolean(1, isActive);
-                pstmt.setInt(2, fireId);
-                pstmt.executeUpdate();
-                pstmt.close();
+        synchronized (UPDATE_FIRE_LOCK) {
+            try (Connection con = connectToDatabase()) {
+                if (con != null) {
+                    String query = "UPDATE fire SET isActive = ? WHERE id = ?";
+                    PreparedStatement pstmt = con.prepareStatement(query);
+                    pstmt.setBoolean(1, isActive);
+                    pstmt.setInt(2, fireId);
+                    pstmt.executeUpdate();
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Error updating fire active status: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            System.out.println("Error updating fire active status: " + e.getMessage());
         }
     }
     
+    
     public void deleteFire() {
+        synchronized (DELETE_FIRE_LOCK) {
         // Triggered by Delete Fire Button
         // intId is the id that'll be entered
         int intId = -1;
@@ -714,51 +740,54 @@ public class Server extends JFrame implements ActionListener, Runnable {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "An error occurred while deleting the fire.");
         }
+        }
     }
     
     
     public void sendFireTruck() {
-        // Triggered by Send Fire Truck Button
-        // intId is the id that'll be entered
-        int intId = -1;
+        synchronized (SEND_FIRETRUCK_LOCK) {
+            // Triggered by Send Fire Truck Button
+            // intId is the id that'll be entered
+            int intId = -1;
 
-        /*
-        Opens Option Pane prompting for a Fire ID
-        If cancel is pressed, null will be returned causing the loop to break
-        otherwise it'll attempt to parse the ID to int, if this fails the user will be reprompted after an error message
-        */
-        while (true) {
-            String enteredId = JOptionPane.showInputDialog(null, "Enter the Fire ID to Extinguish");
-            if (enteredId == null) {
-                return;
+            /*
+            Opens Option Pane prompting for a Fire ID
+            If cancel is pressed, null will be returned causing the loop to break
+            otherwise it'll attempt to parse the ID to int, if this fails the user will be reprompted after an error message
+            */
+            while (true) {
+                String enteredId = JOptionPane.showInputDialog(null, "Enter the Fire ID to Extinguish");
+                if (enteredId == null) {
+                    return;
+                }
+                try {
+                    intId = Integer.parseInt(enteredId);
+                    break;
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(null, "ID must be numerical.");
+                }
             }
-            try {
-                intId = Integer.parseInt(enteredId);
-                break;
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(null, "ID must be numerical.");
+
+            // Find the fire with the given ID
+            for (FireDetails fire : fires) {
+                if (fire.getId() == intId) {
+                    // Create a new FireTruckDetails object and add it to the fireTrucks ArrayList
+                    FiretruckDetails newTruck = new FiretruckDetails(fireTrucks.size() + 1, "FireTruck " + (fireTrucks.size() + 1), intId);
+
+                    // Set the activation time to the current time
+                    newTruck.setActivationTime(System.currentTimeMillis());
+
+                    fireTrucks.add(newTruck);
+                    addFireTruck(newTruck);
+                    // Repaint the panel to show the new fire truck
+                    repaint();
+                    return;
+                }
             }
+
+            // If we get here, the fire with the given ID was not found
+            JOptionPane.showMessageDialog(null, "Fire with ID " + intId + " not found.");
         }
-
-        // Find the fire with the given ID
-        for (FireDetails fire : fires) {
-            if (fire.getId() == intId) {
-                // Create a new FireTruckDetails object and add it to the fireTrucks ArrayList
-                FiretruckDetails newTruck = new FiretruckDetails(fireTrucks.size() + 1, "FireTruck " + (fireTrucks.size() + 1), intId);
-
-                // Set the activation time to the current time
-                newTruck.setActivationTime(System.currentTimeMillis());
-
-                fireTrucks.add(newTruck);
-                addFireTruck(newTruck);
-                // Repaint the panel to show the new fire truck
-                repaint();
-                return;
-            }
-        }
-
-        // If we get here, the fire with the given ID was not found
-        JOptionPane.showMessageDialog(null, "Fire with ID " + intId + " not found.");
     }
     
     
